@@ -9,7 +9,19 @@ Code) and ACP (toward `kiro-cli acp`).
 - Node.js >= 20
 - `kiro-cli` >= 2.6.0 on PATH, logged in (`kiro-cli login`)
 
-## Install (local)
+## Install (from the marketplace)
+
+    claude plugin marketplace add xiehust/kiro_acp_plugin
+    claude plugin install kiro-acp-mcp@kiro-acp-plugin
+
+Or inside a Claude Code session:
+
+    /plugin marketplace add xiehust/kiro_acp_plugin
+    /plugin install kiro-acp-mcp@kiro-acp-plugin
+
+No build step needed — `server/dist` ships prebuilt in the repo.
+
+## Install (local development)
 
     cd server && npm install && npm run build
     claude --plugin-dir /path/to/kiro-acp-mcp

@@ -1,0 +1,22 @@
+{
+  "name": "kiro-acp-plugin",
+  "description": "Use kiro-cli as a delegable sub-agent for Claude Code over an MCP-to-ACP bridge",
+  "owner": {
+    "name": "River Xie"
+  },
+  "plugins": [
+    {
+      "name": "kiro-acp-mcp",
+      "source": "./",
+      "description": "Delegate tasks to the local kiro-cli agent as a multi-turn sub-agent, via an MCP-to-ACP bridge",
+      "version": "0.1.0",
+      "author": {
+        "name": "River Xie"
+      },
+      "homepage": "https://github.com/xiehust/kiro_acp_plugin",
+      "repository": "https://github.com/xiehust/kiro_acp_plugin",
+      "keywords": ["kiro", "acp", "mcp", "delegation", "sub-agent"],
+      "category": "development"
+    }
+  ]
+}
