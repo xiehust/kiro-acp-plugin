@@ -1,6 +1,13 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import * as cp from "node:child_process";
 import { KiroConnection } from "../src/acp-client.js";
 import { FAKE_AGENT } from "./helpers.js";
+
+// Pass-through spy on spawn so we can count process creations.
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  return { ...actual, spawn: vi.fn(actual.spawn) };
+});
 
 function fakeKiro(mode?: string): KiroConnection {
   return new KiroConnection({
@@ -53,6 +60,19 @@ describe("KiroConnection", () => {
   it("reports a helpful error when the binary does not exist", async () => {
     kiro = new KiroConnection({ bin: "/nonexistent/kiro-cli", args: ["acp"], env: { ...process.env } });
     await expect(kiro.ensureStarted()).rejects.toThrow(/failed to start.*kiro-cli installed/i);
+  });
+
+  it("concurrent calls share a single spawn", async () => {
+    kiro = fakeKiro();
+    const spawnSpy = vi.mocked(cp.spawn);
+    spawnSpy.mockClear();
+    const [s1, s2] = await Promise.all([kiro.newSession("/tmp"), kiro.newSession("/tmp")]);
+    // One shared process increments one counter. NOTE: session ids alone cannot
+    // detect a double-spawn — `this.conn` is overwritten by the second start
+    // before either initialize resolves, so both newSession calls route to the
+    // surviving process anyway and the loser leaks. Count spawns directly.
+    expect(spawnSpy).toHaveBeenCalledTimes(1);
+    expect([s1, s2].sort()).toEqual(["sess_fake_1", "sess_fake_2"]);
   });
 
   it("appends launch args only before first spawn", async () => {

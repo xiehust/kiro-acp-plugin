@@ -24,6 +24,7 @@ type SpawnedChild = ChildProcessByStdio<NodeWritable, NodeReadable, null>;
 export class KiroConnection {
   private child: SpawnedChild | undefined;
   private conn: ClientSideConnection | undefined;
+  private starting: Promise<void> | undefined;
   private subscribers = new Map<string, UpdateHandler>();
 
   /** Fired whenever the kiro process exits, for any reason. */
@@ -53,6 +54,15 @@ export class KiroConnection {
 
   async ensureStarted(): Promise<void> {
     if (this.isAlive()) return;
+    if (!this.starting) {
+      this.starting = this.doStart().finally(() => {
+        this.starting = undefined;
+      });
+    }
+    return this.starting;
+  }
+
+  private async doStart(): Promise<void> {
     const child = spawn(this.opts.bin, this.opts.args, {
       stdio: ["pipe", "pipe", "inherit"],
       env: this.opts.env,
