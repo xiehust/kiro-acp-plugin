@@ -26,7 +26,9 @@ Keep yourself (do NOT delegate):
 
 ## Direct tool vs kiro-sub-agent
 
-Two ways to delegate — pick by task size and context cost:
+Two ways to delegate — pick by task size and context cost. (The
+`kiro-sub-agent` agent type exists only in Claude Code; in other MCP hosts
+such as OpenAI Codex, always call `kiro_prompt` directly.)
 
 - **Call `kiro_prompt` directly** for short tasks, when the user wants to
   watch progress live, or when you need the raw result in this conversation.

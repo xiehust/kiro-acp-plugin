@@ -30510,7 +30510,7 @@ function buildContext() {
   };
 }
 function buildServer(ctx) {
-  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.3.1" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.0" });
   server.registerTool(
     "kiro_prompt",
     {

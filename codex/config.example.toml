@@ -1,0 +1,20 @@
+# Example OpenAI Codex CLI configuration for the kiro MCP bridge.
+# Append to ~/.codex/config.toml (or run codex/install.sh to do it for you),
+# replacing /path/to/kiro-acp-plugin with your clone location.
+
+[mcp_servers.kiro]
+command = "node"
+args = ["/path/to/kiro-acp-plugin/server/dist/index.js"]
+# CRITICAL: kiro_prompt blocks until kiro finishes. Codex's default per-tool
+# timeout is 60s, which would kill almost every delegation. Keep this >= the
+# bridge's KIRO_MCP_TIMEOUT_MS / 1000 (default 1800 = 30 min) plus margin, so
+# the bridge's graceful timeout (cancel + partial output, session stays
+# usable) wins the race instead of Codex hard-killing the call.
+tool_timeout_sec = 1860
+startup_timeout_sec = 20
+
+# Optional bridge configuration (all have sensible defaults):
+# [mcp_servers.kiro.env]
+# KIRO_MCP_TIMEOUT_MS = "1800000"            # per-prompt timeout (default 30 min)
+# KIRO_MCP_TRUST_TOOLS = "fs_read,fs_write"  # default: --trust-all-tools
+# KIRO_MCP_BIN = "/usr/local/bin/kiro-cli"   # default: kiro-cli on PATH

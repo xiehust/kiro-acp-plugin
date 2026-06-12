@@ -4,6 +4,9 @@ Claude Code plugin: delegate tasks to the local [kiro-cli](https://kiro.dev)
 agent as a multi-turn sub-agent. One Node process bridges MCP (toward Claude
 Code) and ACP (toward `kiro-cli acp`).
 
+The bridge itself is a plain stdio MCP server, so it also works in other MCP
+hosts — [OpenAI Codex CLI setup below](#use-with-openai-codex-cli).
+
 ## Architecture
 
 ![kiro-acp-plugin architecture](docs/assets/architecture.png)
@@ -38,6 +41,34 @@ No build step needed — `server/dist` ships prebuilt in the repo.
     claude --plugin-dir /path/to/kiro-acp-plugin
 
 Then in Claude Code: `/mcp` should list a `kiro` server with 3 tools.
+
+## Use with OpenAI Codex CLI
+
+The same bridge works in Codex; only the packaging differs (Codex has no
+Claude-style plugins — the `/kiro` command and `kiro-sub-agent` agent type
+are Claude Code-only, but the skill installs as a standard
+[agent skill](https://developers.openai.com/codex/skills/)).
+
+    git clone https://github.com/xiehust/kiro-acp-plugin
+    cd kiro-acp-plugin
+    ./codex/install.sh
+
+The script appends `[mcp_servers.kiro]` to `~/.codex/config.toml` and
+symlinks `skills/delegating-to-kiro` into `~/.agents/skills` (Codex's global
+skills directory). For manual setup, see
+[codex/config.example.toml](codex/config.example.toml).
+
+The one setting that matters: **`tool_timeout_sec`**. Codex kills MCP tool
+calls after 60s by default, but `kiro_prompt` blocks until kiro finishes
+(up to 30 min by default). The installer sets it to 1860 so the bridge's own
+graceful timeout (cancel + partial output, session stays usable) wins.
+
+Verify inside Codex: `/mcp` lists `kiro` with 3 tools, `/skills` lists
+`delegating-to-kiro`. Then either ask Codex to delegate ("have kiro fix the
+failing test in ...") or invoke the skill explicitly with
+`$delegating-to-kiro <task>`. Since the server is registered globally, pass
+`cwd` (absolute path) in `kiro_prompt` when the target project differs from
+the directory Codex was started in.
 
 ## Tools
 
