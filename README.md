@@ -1,5 +1,7 @@
 # kiro-acp-plugin
 
+English | [简体中文](README.zh-CN.md)
+
 Claude Code plugin: delegate tasks to the local [kiro-cli](https://kiro.dev)
 agent as a multi-turn sub-agent. One Node process bridges MCP (toward Claude
 Code) and ACP (toward `kiro-cli acp`).
