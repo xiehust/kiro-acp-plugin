@@ -15,12 +15,13 @@
     <marker id="arr-purple" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0, 9 3, 0 6" fill="#a855f7"/></marker>
     <marker id="arr-orange" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0, 9 3, 0 6" fill="#f97316"/></marker>
     <marker id="arr-green" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0, 9 3, 0 6" fill="#10b981"/></marker>
+    <marker id="arr-cyan" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0, 9 3, 0 6" fill="#06b6d4"/></marker>
     <filter id="glow-purple"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect width="1040" height="620" fill="url(#bg-grad)"/>
   <text x="520" y="44" text-anchor="middle" class="hdr" font-size="17">kiro-acp-plugin &#8212; MCP &#8596; ACP bridge</text>
-  <text x="520" y="66" text-anchor="middle" class="sub">delegate a task to the local kiro-cli agent, get a verified result back</text>
-  <rect x="40" y="95" width="215" height="470" rx="8" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="520" y="66" text-anchor="middle" class="sub">delegate a task to the local kiro-cli agent &#8212; from Claude Code or OpenAI Codex</text>
+  <rect x="40" y="95" width="215" height="345" rx="8" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5"/>
   <text x="147" y="122" text-anchor="middle" class="hdr lbl" fill="#3b82f6">CLAUDE CODE (host)</text>
   <rect x="58" y="140" width="179" height="52" rx="6" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
   <text x="147" y="162" text-anchor="middle" class="lbl">Claude (LLM)</text>
@@ -37,11 +38,15 @@
   <text x="147" y="371" text-anchor="middle" class="sub">delegate + verify loop</text>
   <path d="M58,170 C 44,170 44,344 54,344" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#arr-green)"/>
   <text x="50" y="262" class="arr" fill="#6ee7b7" transform="rotate(-90 50 262)" text-anchor="middle">dispatch</text>
-  <rect x="58" y="440" width="179" height="105" rx="6" fill="#0d1220" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,2"/>
-  <text x="147" y="464" text-anchor="middle" class="sub">verifies result:</text>
-  <text x="147" y="483" text-anchor="middle" class="sub">git diff &#183; run tests</text>
-  <text x="147" y="510" text-anchor="middle" class="sub" fill="#64748b">(main &amp; sub-agent both;</text>
-  <text x="147" y="527" text-anchor="middle" class="sub" fill="#64748b">never trust self-report)</text>
+  <rect x="58" y="388" width="179" height="44" rx="6" fill="#0d1220" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="147" y="406" text-anchor="middle" class="sub">verifies: git diff &#183; tests</text>
+  <text x="147" y="423" text-anchor="middle" class="sub" fill="#64748b">never trust self-report</text>
+  <rect x="40" y="456" width="215" height="109" rx="8" fill="#0f172a" stroke="#06b6d4" stroke-width="1.5"/>
+  <text x="147" y="482" text-anchor="middle" class="hdr lbl" fill="#06b6d4">OPENAI CODEX (host)</text>
+  <text x="147" y="498" text-anchor="middle" class="sub">same MCP server &#183; config.toml</text>
+  <rect x="58" y="506" width="179" height="48" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="147" y="526" text-anchor="middle" class="lbl">delegating-to-kiro</text>
+  <text x="147" y="543" text-anchor="middle" class="sub">skill in ~/.agents/skills</text>
   <rect x="360" y="95" width="300" height="470" rx="8" fill="#0f172a" stroke="#a855f7" stroke-width="1.5" filter="url(#glow-purple)"/>
   <text x="510" y="122" text-anchor="middle" class="hdr lbl" fill="#a855f7">PLUGIN MCP SERVER</text>
   <text x="510" y="139" text-anchor="middle" class="sub">Node, single bundled dist/index.js</text>
@@ -92,6 +97,9 @@
   <path d="M765,400 H665" stroke="#f97316" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#arr-orange)"/>
   <rect x="666" y="381" width="94" height="16" rx="3" fill="#0f0f1a" opacity="0.95"/>
   <text x="713" y="393" text-anchor="middle" class="arr">session/update</text>
+  <path d="M255,510 H355" stroke="#06b6d4" stroke-width="1.8" fill="none" marker-end="url(#arr-cyan)"/>
+  <rect x="266" y="491" width="80" height="16" rx="3" fill="#0f0f1a" opacity="0.95"/>
+  <text x="306" y="503" text-anchor="middle" class="arr">MCP call</text>
   <text x="306" y="540" text-anchor="middle" class="sub" fill="#475569">stdio JSON-RPC</text>
   <text x="306" y="556" text-anchor="middle" class="sub" fill="#475569">(MCP)</text>
   <text x="713" y="540" text-anchor="middle" class="sub" fill="#475569">stdio JSON-RPC</text>

@@ -147,5 +147,5 @@ Manage in-flight work:
     npm test                       # unit/integration vs scripted fake agent
     KIRO_MCP_E2E=1 npm test        # plus real kiro-cli smoke test
 
-Architecture spec: docs/superpowers/specs/2026-06-12-kiro-acp-mcp-plugin-design.md
-Implementation plan: docs/superpowers/plans/2026-06-12-kiro-acp-mcp-plugin.md
+- Architecture spec: docs/superpowers/specs/2026-06-12-kiro-acp-mcp-plugin-design.md
+- Implementation plan: docs/superpowers/plans/2026-06-12-kiro-acp-mcp-plugin.md

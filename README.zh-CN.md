@@ -142,5 +142,5 @@ Claude 会复用返回的 `session_id`,kiro 自己记得之前的改动。
     npm test                       # 单元/集成测试,基于脚本化的 fake agent
     KIRO_MCP_E2E=1 npm test        # 额外运行真实 kiro-cli 冒烟测试
 
-架构设计文档:docs/superpowers/specs/2026-06-12-kiro-acp-mcp-plugin-design.md
-实现计划:docs/superpowers/plans/2026-06-12-kiro-acp-mcp-plugin.md
+- 架构设计文档:docs/superpowers/specs/2026-06-12-kiro-acp-mcp-plugin-design.md
+- 实现计划:docs/superpowers/plans/2026-06-12-kiro-acp-mcp-plugin.md
