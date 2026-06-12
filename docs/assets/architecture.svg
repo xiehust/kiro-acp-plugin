@@ -14,6 +14,7 @@
     <marker id="arr-blue" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0, 9 3, 0 6" fill="#3b82f6"/></marker>
     <marker id="arr-purple" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0, 9 3, 0 6" fill="#a855f7"/></marker>
     <marker id="arr-orange" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0, 9 3, 0 6" fill="#f97316"/></marker>
+    <marker id="arr-green" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0, 9 3, 0 6" fill="#10b981"/></marker>
     <filter id="glow-purple"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect width="1040" height="620" fill="url(#bg-grad)"/>
@@ -21,20 +22,26 @@
   <text x="520" y="66" text-anchor="middle" class="sub">delegate a task to the local kiro-cli agent, get a verified result back</text>
   <rect x="40" y="95" width="215" height="470" rx="8" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5"/>
   <text x="147" y="122" text-anchor="middle" class="hdr lbl" fill="#3b82f6">CLAUDE CODE (host)</text>
-  <rect x="58" y="140" width="179" height="60" rx="6" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
-  <text x="147" y="166" text-anchor="middle" class="lbl">Claude (LLM)</text>
-  <text x="147" y="185" text-anchor="middle" class="sub">decides what to delegate</text>
-  <rect x="58" y="218" width="179" height="50" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-  <text x="147" y="240" text-anchor="middle" class="lbl">/kiro &lt;task&gt;</text>
-  <text x="147" y="257" text-anchor="middle" class="sub">slash command</text>
-  <rect x="58" y="286" width="179" height="50" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-  <text x="147" y="308" text-anchor="middle" class="lbl">delegating-to-kiro</text>
-  <text x="147" y="325" text-anchor="middle" class="sub">skill: when &amp; verify</text>
-  <rect x="58" y="430" width="179" height="115" rx="6" fill="#0d1220" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,2"/>
-  <text x="147" y="452" text-anchor="middle" class="sub">verifies result:</text>
-  <text x="147" y="472" text-anchor="middle" class="sub">git diff &#183; run tests</text>
-  <text x="147" y="500" text-anchor="middle" class="sub" fill="#64748b">(never trusts</text>
-  <text x="147" y="517" text-anchor="middle" class="sub" fill="#64748b">self-report)</text>
+  <rect x="58" y="140" width="179" height="52" rx="6" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+  <text x="147" y="162" text-anchor="middle" class="lbl">Claude (LLM)</text>
+  <text x="147" y="180" text-anchor="middle" class="sub">decides what to delegate</text>
+  <rect x="58" y="204" width="179" height="44" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="147" y="223" text-anchor="middle" class="lbl">/kiro &lt;task&gt;</text>
+  <text x="147" y="240" text-anchor="middle" class="sub">slash command</text>
+  <rect x="58" y="260" width="179" height="44" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="147" y="279" text-anchor="middle" class="lbl">delegating-to-kiro</text>
+  <text x="147" y="296" text-anchor="middle" class="sub">skill: when &amp; verify</text>
+  <rect x="58" y="316" width="179" height="64" rx="6" fill="#052e16" stroke="#10b981" stroke-width="1.5"/>
+  <text x="147" y="338" text-anchor="middle" class="lbl">kiro-sub-agent</text>
+  <text x="147" y="356" text-anchor="middle" class="sub">isolated context:</text>
+  <text x="147" y="371" text-anchor="middle" class="sub">delegate + verify loop</text>
+  <path d="M58,170 C 44,170 44,344 54,344" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#arr-green)"/>
+  <text x="50" y="262" class="arr" fill="#6ee7b7" transform="rotate(-90 50 262)" text-anchor="middle">dispatch</text>
+  <rect x="58" y="440" width="179" height="105" rx="6" fill="#0d1220" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="147" y="464" text-anchor="middle" class="sub">verifies result:</text>
+  <text x="147" y="483" text-anchor="middle" class="sub">git diff &#183; run tests</text>
+  <text x="147" y="510" text-anchor="middle" class="sub" fill="#64748b">(main &amp; sub-agent both;</text>
+  <text x="147" y="527" text-anchor="middle" class="sub" fill="#64748b">never trust self-report)</text>
   <rect x="360" y="95" width="300" height="470" rx="8" fill="#0f172a" stroke="#a855f7" stroke-width="1.5" filter="url(#glow-purple)"/>
   <text x="510" y="122" text-anchor="middle" class="hdr lbl" fill="#a855f7">PLUGIN MCP SERVER</text>
   <text x="510" y="139" text-anchor="middle" class="sub">Node, single bundled dist/index.js</text>
@@ -53,8 +60,9 @@
   <text x="510" y="416" text-anchor="middle" class="lbl">SessionRegistry</text>
   <text x="510" y="435" text-anchor="middle" class="sub">idle &#183; running &#183; dead</text>
   <text x="510" y="478" text-anchor="middle" class="sub" fill="#64748b">one kiro child, multiplexed</text>
-  <text x="510" y="496" text-anchor="middle" class="sub" fill="#64748b">across N sessions</text>
-  <text x="510" y="525" text-anchor="middle" class="sub" fill="#64748b">timeout / crash &#8594; partial output</text>
+  <text x="510" y="496" text-anchor="middle" class="sub" fill="#64748b">across N sessions &#8594; parallel</text>
+  <text x="510" y="514" text-anchor="middle" class="sub" fill="#64748b">sub-agent fan-out works</text>
+  <text x="510" y="540" text-anchor="middle" class="sub" fill="#64748b">timeout / crash &#8594; partial output</text>
   <rect x="770" y="95" width="230" height="470" rx="8" fill="#0f172a" stroke="#f97316" stroke-width="1.5"/>
   <text x="885" y="122" text-anchor="middle" class="hdr lbl" fill="#f97316">kiro-cli acp</text>
   <text x="885" y="139" text-anchor="middle" class="sub">child process (v2.6)</text>
@@ -89,9 +97,11 @@
   <text x="713" y="540" text-anchor="middle" class="sub" fill="#475569">stdio JSON-RPC</text>
   <text x="713" y="556" text-anchor="middle" class="sub" fill="#475569">(ACP)</text>
   <rect x="40" y="582" width="960" height="26" rx="5" fill="#0d1220" stroke="#1e293b" stroke-width="1"/>
-  <line x1="58" y1="595" x2="92" y2="595" stroke="#3b82f6" stroke-width="1.8"/>
-  <text x="100" y="599" class="arr">request (solid)</text>
-  <line x1="230" y1="595" x2="264" y2="595" stroke="#a855f7" stroke-width="1.8" stroke-dasharray="5,3"/>
-  <text x="272" y="599" class="arr">streamed notifications / result (dashed)</text>
-  <text x="620" y="599" class="arr" fill="#94a3b8">blue = Claude&#8594;server &#183; purple = server &#8596; Claude/kiro &#183; orange = kiro&#8594;server</text>
+  <line x1="58" y1="595" x2="88" y2="595" stroke="#3b82f6" stroke-width="1.8"/>
+  <text x="94" y="599" class="arr">request</text>
+  <line x1="168" y1="595" x2="198" y2="595" stroke="#a855f7" stroke-width="1.8" stroke-dasharray="5,3"/>
+  <text x="204" y="599" class="arr">notifications / result</text>
+  <line x1="364" y1="595" x2="394" y2="595" stroke="#10b981" stroke-width="1.5"/>
+  <text x="400" y="599" class="arr">sub-agent dispatch (isolated context, parallelizable)</text>
+  <text x="745" y="599" class="arr" fill="#94a3b8">direct MCP call and sub-agent paths both supported</text>
 </svg>
