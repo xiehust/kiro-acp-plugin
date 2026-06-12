@@ -98,7 +98,7 @@ describe("kiroPrompt", () => {
         stop: async () => {},
       } as unknown as KiroConnection;
       const sessions = new SessionRegistry();
-      const out = await kiroPrompt({ kiro: stub, sessions, timeoutMs: 50, defaultCwd: "/tmp" }, { prompt: "x" });
+      const out = await kiroPrompt({ kiro: stub, sessions, timeoutMs: 50, defaultCwd: "/tmp", cancelGraceMs: 20 }, { prompt: "x" });
       expect(out).toMatch(/timed out/);
       rejectPrompt(new Error("late failure"));
       await new Promise((r) => setTimeout(r, 20));
@@ -106,6 +106,45 @@ describe("kiroPrompt", () => {
     } finally {
       process.off("unhandledRejection", handler);
     }
+  });
+
+  it("lets exactly one of two concurrent prompts claim the same idle session", async () => {
+    ctx = makeCtx();
+    const first = await kiroPrompt(ctx, { prompt: "t1" });
+    const id = /session_id: (\S+)/.exec(first)![1];
+    const results = await Promise.allSettled([
+      kiroPrompt(ctx, { prompt: "a", session_id: id }),
+      kiroPrompt(ctx, { prompt: "b", session_id: id }),
+    ]);
+    const rejected = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+    expect(rejected).toHaveLength(1);
+    expect(String(rejected[0].reason)).toMatch(/already has a prompt in flight/);
+    expect(ctx.sessions.get(id)?.status).toBe("idle");
+  });
+
+  it("keeps the session busy when a timed-out cancel goes unacknowledged", async () => {
+    ctx = makeCtx("hang_ignore_cancel", 300);
+    ctx.cancelGraceMs = 100;
+    const out = await kiroPrompt(ctx, { prompt: "never ends" });
+    expect(out).toMatch(/timed out after 300ms/);
+    expect(out).toMatch(/has not acknowledged/);
+    const id = /session_id: (\S+)/.exec(out)![1];
+    expect(ctx.sessions.get(id)?.status).toBe("running");
+    await expect(kiroPrompt(ctx, { prompt: "follow-up", session_id: id })).rejects.toThrow(
+      /already has a prompt in flight/,
+    );
+  });
+
+  it("releases the session once a late cancel finally lands", async () => {
+    ctx = makeCtx("slow_cancel", 200);
+    ctx.cancelGraceMs = 50;
+    const out = await kiroPrompt(ctx, { prompt: "x" });
+    expect(out).toMatch(/has not acknowledged/);
+    const id = /session_id: (\S+)/.exec(out)![1];
+    expect(ctx.sessions.get(id)?.status).toBe("running");
+    // the fake agent acknowledges the cancel ~300ms after it was sent
+    await new Promise((r) => setTimeout(r, 600));
+    expect(ctx.sessions.get(id)?.status).toBe("idle");
   });
 
   it("rejects a second prompt on a session that is already running", async () => {

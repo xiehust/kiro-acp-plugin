@@ -51,7 +51,7 @@ Key semantics to preserve:
 
 ## Tests
 
-`test/fake-agent.cjs` is a scripted ACP agent driven by `FAKE_AGENT_MODE`: `normal`, `hang` (never completes; responds to cancel), `crash_during_prompt`, `auth_required`. Unit/integration tests exercise the bridge against it; `test/e2e.test.ts` is the only test touching real kiro-cli and is skipped unless `KIRO_MCP_E2E=1`.
+`test/fake-agent.cjs` is a scripted ACP agent driven by `FAKE_AGENT_MODE`: `normal`, `hang` (never completes; responds to cancel), `hang_ignore_cancel` (ignores cancel — session stays busy), `slow_cancel` (acknowledges cancel after 300ms), `crash_during_prompt`, `auth_required`. Unit/integration tests exercise the bridge against it; `test/e2e.test.ts` is the only test touching real kiro-cli and is skipped unless `KIRO_MCP_E2E=1`.
 
 ## Design docs
 

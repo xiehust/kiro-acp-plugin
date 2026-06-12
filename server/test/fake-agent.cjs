@@ -2,6 +2,8 @@
 //   normal (default)    — two text chunks + one tool_call, then end_turn
 //   hang                — streams updates but never completes the prompt;
 //                         completes with stopReason "cancelled" on session/cancel
+//   hang_ignore_cancel  — like hang, but session/cancel is ignored entirely
+//   slow_cancel         — like hang, but acknowledges session/cancel only after 300ms
 //   crash_during_prompt — one partial chunk, then process.exit(1)
 //   auth_required       — session/new fails with JSON-RPC error -32000
 const readline = require("node:readline");
@@ -52,17 +54,21 @@ rl.on("line", (line) => {
     update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "working... " } });
     update(sessionId, { sessionUpdate: "tool_call", toolCallId: "tc_1", title: "echo hello", kind: "execute", status: "completed" });
     update(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "done." } });
-    if (mode === "hang") {
+    if (mode === "hang" || mode === "hang_ignore_cancel" || mode === "slow_cancel") {
       pendingPromptId = id;
       pendingSessionId = sessionId;
       return;
     }
     send({ jsonrpc: "2.0", id, result: { stopReason: "end_turn" } });
   } else if (method === "session/cancel") {
+    if (mode === "hang_ignore_cancel") return;
     // notification (no id); complete the in-flight prompt as cancelled
     if (pendingPromptId !== null && params.sessionId === pendingSessionId) {
-      send({ jsonrpc: "2.0", id: pendingPromptId, result: { stopReason: "cancelled" } });
+      const promptId = pendingPromptId;
       pendingPromptId = null;
+      const ack = () => send({ jsonrpc: "2.0", id: promptId, result: { stopReason: "cancelled" } });
+      if (mode === "slow_cancel") setTimeout(ack, 300);
+      else ack();
     }
   }
 });

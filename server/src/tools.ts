@@ -7,6 +7,8 @@ export interface ToolContext {
   sessions: SessionRegistry;
   timeoutMs: number;
   defaultCwd: string;
+  /** How long after a timeout-triggered cancel to wait for the turn to actually end (default 5s). */
+  cancelGraceMs?: number;
 }
 
 export interface PromptArgs {
@@ -91,19 +93,38 @@ export async function kiroPrompt(ctx: ToolContext, args: PromptArgs, onProgress?
     }
   });
 
-  ctx.sessions.setStatus(sessionId, "running");
+  // the session was already claimed (status "running") by resolveSession
+  const pending = ctx.kiro.prompt(sessionId, args.prompt);
+  // keep the orphan harmless if the timeout wins the race and it later rejects
+  pending.catch(() => {});
   try {
-    const pending = ctx.kiro.prompt(sessionId, args.prompt);
-    // keep the orphan harmless if the timeout wins the race and it later rejects
-    pending.catch(() => {});
     const resp = await withTimeout(pending, ctx.timeoutMs);
     ctx.sessions.setStatus(sessionId, "idle");
     if (resp.stopReason !== "end_turn") notes.push(`stopReason: ${resp.stopReason}`);
   } catch (err) {
     if (err instanceof PromptTimeoutError) {
       await ctx.kiro.cancel(sessionId).catch(() => {});
-      ctx.sessions.setStatus(sessionId, "idle");
-      notes.push(`note: ${err.message} — partial output below; the session is still usable`);
+      // session/cancel is fire-and-forget: the turn is only over once the
+      // original prompt request settles. Don't advertise the session as idle
+      // before that, or the next prompt races the still-running turn.
+      const settled = await waitForSettled(pending, ctx.cancelGraceMs ?? 5_000);
+      if (settled && ctx.kiro.isAlive()) {
+        ctx.sessions.setStatus(sessionId, "idle");
+        notes.push(`note: ${err.message} — partial output below; the session is still usable`);
+      } else if (settled) {
+        ctx.sessions.setStatus(sessionId, "dead");
+        notes.push(`note: ${err.message}; kiro-cli exited while cancelling — partial output below; start a new session`);
+      } else {
+        // cancel not acknowledged in time: the turn is still in flight, so the
+        // session stays busy; release it whenever the turn eventually ends
+        // (a kiro exit marks it dead via onExit before the rejection lands).
+        const release = () => ctx.sessions.releaseIfRunning(sessionId);
+        pending.then(release, release);
+        notes.push(
+          `note: ${err.message} — partial output below; cancel sent but kiro has not acknowledged it yet, ` +
+            `so the session is still busy. Check kiro_list_sessions before reusing it, or start a new session.`,
+        );
+      }
     } else if (err instanceof KiroExitError || !ctx.kiro.isAlive()) {
       // crash mid-prompt: report partial output instead of throwing away what we have
       ctx.sessions.setStatus(sessionId, "dead");
@@ -112,6 +133,8 @@ export async function kiroPrompt(ctx: ToolContext, args: PromptArgs, onProgress?
         : `kiro-cli exited unexpectedly (${err instanceof Error ? err.message : String(err)})`;
       notes.push(`note: ${msg} — partial output below; start a new session`);
     } else {
+      // the turn is over (errored), so the claim must not outlive this call
+      ctx.sessions.releaseIfRunning(sessionId);
       unsubscribe();
       throw translateAuthError(err);
     }
@@ -138,29 +161,33 @@ export function kiroListSessions(ctx: ToolContext): string {
     .join("\n");
 }
 
+/** Resolves the target session and atomically claims it (status → "running"). */
 async function resolveSession(ctx: ToolContext, args: PromptArgs): Promise<string> {
   if (args.session_id !== undefined) {
-    const info = ctx.sessions.get(args.session_id);
-    if (!info) {
-      throw new Error(`unknown session_id: ${args.session_id}. Omit session_id to start a new session.`);
+    // claim is a synchronous check-and-set: a plain status check here would let
+    // two concurrent prompts on the same idle session both pass before either
+    // is marked running (the await boundaries between check and set interleave).
+    switch (ctx.sessions.claim(args.session_id)) {
+      case "claimed":
+        return args.session_id;
+      case "not_found":
+        throw new Error(`unknown session_id: ${args.session_id}. Omit session_id to start a new session.`);
+      case "dead":
+        throw new Error(
+          `session ${args.session_id} is dead (kiro-cli restarted since it was created). ` +
+            `Start a new session (omit session_id) and restate the context.`,
+        );
+      case "running":
+        throw new Error(
+          `session ${args.session_id} already has a prompt in flight — wait for it to finish, ` +
+            `cancel it with kiro_cancel, or start a new session`,
+        );
     }
-    if (info.status === "dead") {
-      throw new Error(
-        `session ${args.session_id} is dead (kiro-cli restarted since it was created). ` +
-          `Start a new session (omit session_id) and restate the context.`,
-      );
-    }
-    if (info.status === "running") {
-      throw new Error(
-        `session ${args.session_id} already has a prompt in flight — wait for it to finish, ` +
-          `cancel it with kiro_cancel, or start a new session`,
-      );
-    }
-    return args.session_id;
   }
   const cwd = args.cwd ?? ctx.defaultCwd;
   const sessionId = await ctx.kiro.newSession(cwd);
   ctx.sessions.add(sessionId, cwd);
+  ctx.sessions.claim(sessionId);
   return sessionId;
 }
 
@@ -169,6 +196,18 @@ function translateAuthError(err: unknown): Error {
     return new Error("kiro-cli is not logged in — run `kiro-cli login` in a terminal, then retry");
   }
   return err instanceof Error ? err : new Error(String(err));
+}
+
+/** Resolves true when p settles (either way) within ms, false otherwise. Never rejects. */
+function waitForSettled(p: Promise<unknown>, ms: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => resolve(false), ms);
+    const done = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    p.then(done, done);
+  });
 }
 
 async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {

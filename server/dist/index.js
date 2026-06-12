@@ -30336,6 +30336,28 @@ var SessionRegistry = class {
     info.status = status;
     info.lastActivityAt = Date.now();
   }
+  /**
+   * Atomically claim a session for a new prompt (idle → running).
+   * The check and the transition must be one synchronous step: two concurrent
+   * prompts on the same idle session must not both pass an idle check before
+   * either marks it running (KiroConnection holds one subscriber per session,
+   * so a double claim loses or misattributes output).
+   */
+  claim(id) {
+    const info = this.sessions.get(id);
+    if (!info) return "not_found";
+    if (info.status !== "idle") return info.status;
+    info.status = "running";
+    info.lastActivityAt = Date.now();
+    return "claimed";
+  }
+  /** running → idle. No-op in any other state (dead stays dead). */
+  releaseIfRunning(id) {
+    const info = this.sessions.get(id);
+    if (info?.status !== "running") return;
+    info.status = "idle";
+    info.lastActivityAt = Date.now();
+  }
   markAllDead() {
     for (const info of this.sessions.values()) info.status = "dead";
   }
@@ -30402,11 +30424,10 @@ async function kiroPrompt(ctx, args, onProgress) {
       report("[kiro updated its plan]");
     }
   });
-  ctx.sessions.setStatus(sessionId, "running");
+  const pending = ctx.kiro.prompt(sessionId, args.prompt);
+  pending.catch(() => {
+  });
   try {
-    const pending = ctx.kiro.prompt(sessionId, args.prompt);
-    pending.catch(() => {
-    });
     const resp = await withTimeout(pending, ctx.timeoutMs);
     ctx.sessions.setStatus(sessionId, "idle");
     if (resp.stopReason !== "end_turn") notes.push(`stopReason: ${resp.stopReason}`);
@@ -30414,13 +30435,26 @@ async function kiroPrompt(ctx, args, onProgress) {
     if (err instanceof PromptTimeoutError) {
       await ctx.kiro.cancel(sessionId).catch(() => {
       });
-      ctx.sessions.setStatus(sessionId, "idle");
-      notes.push(`note: ${err.message} \u2014 partial output below; the session is still usable`);
+      const settled = await waitForSettled(pending, ctx.cancelGraceMs ?? 5e3);
+      if (settled && ctx.kiro.isAlive()) {
+        ctx.sessions.setStatus(sessionId, "idle");
+        notes.push(`note: ${err.message} \u2014 partial output below; the session is still usable`);
+      } else if (settled) {
+        ctx.sessions.setStatus(sessionId, "dead");
+        notes.push(`note: ${err.message}; kiro-cli exited while cancelling \u2014 partial output below; start a new session`);
+      } else {
+        const release = () => ctx.sessions.releaseIfRunning(sessionId);
+        pending.then(release, release);
+        notes.push(
+          `note: ${err.message} \u2014 partial output below; cancel sent but kiro has not acknowledged it yet, so the session is still busy. Check kiro_list_sessions before reusing it, or start a new session.`
+        );
+      }
     } else if (err instanceof KiroExitError || !ctx.kiro.isAlive()) {
       ctx.sessions.setStatus(sessionId, "dead");
       const msg = err instanceof KiroExitError ? err.message : `kiro-cli exited unexpectedly (${err instanceof Error ? err.message : String(err)})`;
       notes.push(`note: ${msg} \u2014 partial output below; start a new session`);
     } else {
+      ctx.sessions.releaseIfRunning(sessionId);
       unsubscribe();
       throw translateAuthError(err);
     }
@@ -30443,25 +30477,25 @@ function kiroListSessions(ctx) {
 }
 async function resolveSession(ctx, args) {
   if (args.session_id !== void 0) {
-    const info = ctx.sessions.get(args.session_id);
-    if (!info) {
-      throw new Error(`unknown session_id: ${args.session_id}. Omit session_id to start a new session.`);
+    switch (ctx.sessions.claim(args.session_id)) {
+      case "claimed":
+        return args.session_id;
+      case "not_found":
+        throw new Error(`unknown session_id: ${args.session_id}. Omit session_id to start a new session.`);
+      case "dead":
+        throw new Error(
+          `session ${args.session_id} is dead (kiro-cli restarted since it was created). Start a new session (omit session_id) and restate the context.`
+        );
+      case "running":
+        throw new Error(
+          `session ${args.session_id} already has a prompt in flight \u2014 wait for it to finish, cancel it with kiro_cancel, or start a new session`
+        );
     }
-    if (info.status === "dead") {
-      throw new Error(
-        `session ${args.session_id} is dead (kiro-cli restarted since it was created). Start a new session (omit session_id) and restate the context.`
-      );
-    }
-    if (info.status === "running") {
-      throw new Error(
-        `session ${args.session_id} already has a prompt in flight \u2014 wait for it to finish, cancel it with kiro_cancel, or start a new session`
-      );
-    }
-    return args.session_id;
   }
   const cwd = args.cwd ?? ctx.defaultCwd;
   const sessionId = await ctx.kiro.newSession(cwd);
   ctx.sessions.add(sessionId, cwd);
+  ctx.sessions.claim(sessionId);
   return sessionId;
 }
 function translateAuthError(err) {
@@ -30469,6 +30503,16 @@ function translateAuthError(err) {
     return new Error("kiro-cli is not logged in \u2014 run `kiro-cli login` in a terminal, then retry");
   }
   return err instanceof Error ? err : new Error(String(err));
+}
+function waitForSettled(p, ms) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), ms);
+    const done = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    p.then(done, done);
+  });
 }
 async function withTimeout(p, ms) {
   let timer;
@@ -30506,11 +30550,12 @@ function buildContext() {
     kiro,
     sessions,
     timeoutMs,
-    defaultCwd: process.cwd()
+    defaultCwd: process.cwd(),
+    cancelGraceMs: 5e3
   };
 }
 function buildServer(ctx) {
-  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.1" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.2" });
   server.registerTool(
     "kiro_prompt",
     {

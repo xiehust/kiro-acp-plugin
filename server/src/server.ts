@@ -22,11 +22,12 @@ export function buildContext(): ToolContext {
     sessions,
     timeoutMs,
     defaultCwd: process.cwd(),
+    cancelGraceMs: 5_000,
   };
 }
 
 export function buildServer(ctx: ToolContext): McpServer {
-  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.1" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.2" });
 
   server.registerTool(
     "kiro_prompt",
