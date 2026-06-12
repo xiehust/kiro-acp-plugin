@@ -11,6 +11,9 @@ import {
   type SessionNotification,
 } from "@agentclientprotocol/sdk";
 
+/** Thrown when the kiro child process exits while a request is in flight. */
+export class KiroExitError extends Error {}
+
 export interface KiroSpawnOptions {
   bin: string;
   args: string[];
@@ -86,7 +89,7 @@ export class KiroConnection {
           this.conn = undefined;
         }
         this.onExit?.();
-        reject(new Error(`kiro-cli exited unexpectedly (code=${code} signal=${signal})`));
+        reject(new KiroExitError(`kiro-cli exited unexpectedly (code=${code} signal=${signal})`));
       });
     });
     // avoid unhandled-rejection noise when no request is in flight
@@ -130,15 +133,21 @@ export class KiroConnection {
         exitPromise,
       ]);
     } catch (err) {
-      // The SDK may reject with "ACP connection closed" slightly before the
-      // OS exit event fires. Give the exit promise a few event-loop turns to win;
-      // if it does, that error supersedes the SDK's connection-closed error.
+      // The SDK rejects in-flight requests with "ACP connection closed" when the
+      // stdout pipe closes, typically ~0.1-0.3ms BEFORE the OS "exit" event. Give
+      // the exit promise a short grace window to supersede that error with the
+      // richer KiroExitError. 50ms is a heuristic, not a guarantee: a child that
+      // closes stdout then lingers (>50ms) before exiting will surface the raw
+      // SDK error instead, and isAlive() may still be true at that instant —
+      // callers classifying crashes should check `err instanceof KiroExitError
+      // || !isAlive()` and treat the registry as eventually consistent (onExit
+      // still fires when the real exit lands).
       const yieldToEventLoop = new Promise<null>((r) => setTimeout(() => r(null), 50));
       const exitError = await Promise.race([
         exitPromise,
         yieldToEventLoop,
       ]).catch((e: unknown) => e);
-      if (exitError instanceof Error && exitError.message.includes("exited unexpectedly")) {
+      if (exitError instanceof KiroExitError) {
         throw exitError;
       }
       throw err;
