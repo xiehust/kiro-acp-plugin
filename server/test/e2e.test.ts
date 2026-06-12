@@ -16,7 +16,7 @@ describe.skipIf(!enabled)("e2e: real kiro-cli over ACP", () => {
         env: process.env,
       }),
       sessions: new SessionRegistry(),
-      timeoutMs: 120_000,
+      timeoutMs: 120_000, // kiroPrompt's internal timeout: cancels the ACP turn after 2 min
       defaultCwd: process.cwd(),
     };
     try {
@@ -24,9 +24,12 @@ describe.skipIf(!enabled)("e2e: real kiro-cli over ACP", () => {
         prompt: "Reply with exactly the word PONG. Do not use any tools.",
       });
       expect(out).toMatch(/session_id: \S+/);
-      expect(out).toContain("PONG");
+      // LLM replies are nondeterministic; PONG may be wrapped in prose. Good
+      // enough for a smoke check — kiroPrompt formats the reply into a
+      // structured result, so a stray PONG elsewhere is unlikely.
+      expect(out, `kiroPrompt output was:\n${out.slice(0, 300)}`).toContain("PONG");
     } finally {
       await ctx.kiro.stop();
     }
-  }, 180_000);
+  }, 180_000); // vitest outer wall — must exceed timeoutMs plus shutdown grace
 });
