@@ -7,8 +7,8 @@ description: Use when a coding task could be delegated to the local kiro-cli age
 
 kiro is an autonomous coding agent running on this machine (`kiro-cli`). The
 `kiro_prompt` tool sends it a task and blocks until it finishes; progress
-streams in as notifications. It runs with all tools trusted, in the `cwd`
-you give it.
+streams in as notifications when the client supports them (best-effort). It
+runs with all tools trusted, in the `cwd` you give it.
 
 ## When to delegate
 
@@ -31,6 +31,7 @@ kiro starts with zero knowledge of your conversation. Always include:
 - Constraints and project conventions (style, frameworks, test runner)
 - Explicit acceptance criteria ("done when `npm test` passes and X behaves Y")
 - One focused task per prompt
+- If the work is in a different project directory, pass `cwd` (absolute path)
 
 ## Sessions
 
