@@ -15,10 +15,12 @@ export function buildContext(): ToolContext {
   const kiro = new KiroConnection({ bin, args, env: process.env });
   const sessions = new SessionRegistry();
   kiro.onExit = () => sessions.markAllDead();
+  const rawTimeout = Number(process.env.KIRO_MCP_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(rawTimeout) && rawTimeout > 0 ? rawTimeout : 1_800_000;
   return {
     kiro,
     sessions,
-    timeoutMs: Number(process.env.KIRO_MCP_TIMEOUT_MS ?? 1_800_000),
+    timeoutMs,
     defaultCwd: process.cwd(),
   };
 }
@@ -61,6 +63,7 @@ export function buildServer(ctx: ToolContext): McpServer {
       try {
         return { content: [{ type: "text" as const, text: await kiroPrompt(ctx, args, onProgress) }] };
       } catch (err) {
+        console.error("[kiro-acp-mcp] kiro_prompt failed:", err);
         return {
           content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
           isError: true,

@@ -24,6 +24,7 @@ afterEach(async () => {
   delete process.env.KIRO_MCP_BIN;
   delete process.env.KIRO_MCP_ARGS_OVERRIDE;
   delete process.env.KIRO_MCP_TRUST_TOOLS;
+  delete process.env.KIRO_MCP_TIMEOUT_MS;
 });
 
 describe("MCP server", () => {
@@ -45,6 +46,7 @@ describe("MCP server", () => {
     expect(text).toContain("session_id: sess_fake_1");
     expect(text).toContain("working... done.");
     expect(progress.length).toBeGreaterThan(0);
+    expect(progress.some((m) => m.includes("working") || m.includes("echo hello"))).toBe(true);
   });
 
   it("kiro_prompt surfaces errors as isError results", async () => {
@@ -75,5 +77,13 @@ describe("buildContext env handling", () => {
     process.env.KIRO_MCP_TRUST_TOOLS = "fs_read,fs_write";
     c = buildContext();
     expect(c.kiro.launchArgs).toEqual(["acp", "--trust-tools=fs_read,fs_write"]);
+  });
+
+  it("falls back to the default timeout when KIRO_MCP_TIMEOUT_MS is not a positive number", () => {
+    process.env.KIRO_MCP_BIN = "kiro-cli";
+    process.env.KIRO_MCP_TIMEOUT_MS = "30min";
+    expect(buildContext().timeoutMs).toBe(1_800_000);
+    process.env.KIRO_MCP_TIMEOUT_MS = "60000";
+    expect(buildContext().timeoutMs).toBe(60_000);
   });
 });
