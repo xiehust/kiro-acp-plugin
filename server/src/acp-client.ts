@@ -25,6 +25,7 @@ export class KiroConnection {
   private child: SpawnedChild | undefined;
   private conn: ClientSideConnection | undefined;
   private starting: Promise<void> | undefined;
+  private exitPromise: Promise<never> | undefined;
   private subscribers = new Map<string, UpdateHandler>();
 
   /** Fired whenever the kiro process exits, for any reason. */
@@ -53,12 +54,11 @@ export class KiroConnection {
   }
 
   async ensureStarted(): Promise<void> {
+    if (this.starting) return this.starting;
     if (this.isAlive()) return;
-    if (!this.starting) {
-      this.starting = this.doStart().finally(() => {
-        this.starting = undefined;
-      });
-    }
+    this.starting = this.doStart().finally(() => {
+      this.starting = undefined;
+    });
     return this.starting;
   }
 
@@ -79,13 +79,18 @@ export class KiroConnection {
       );
     });
     this.child = child;
-    child.once("exit", () => {
-      if (this.child === child) {
-        this.child = undefined;
-        this.conn = undefined;
-      }
-      this.onExit?.();
+    this.exitPromise = new Promise<never>((_, reject) => {
+      child.once("exit", (code, signal) => {
+        if (this.child === child) {
+          this.child = undefined;
+          this.conn = undefined;
+        }
+        this.onExit?.();
+        reject(new Error(`kiro-cli exited unexpectedly (code=${code} signal=${signal})`));
+      });
     });
+    // avoid unhandled-rejection noise when no request is in flight
+    this.exitPromise.catch(() => {});
 
     const stream = ndJsonStream(
       Writable.toWeb(child.stdin) as WritableStream<Uint8Array>,
@@ -115,8 +120,29 @@ export class KiroConnection {
   }
 
   async prompt(sessionId: string, text: string): Promise<PromptResponse> {
-    if (!this.conn) throw new Error("kiro-cli is not running — call ensureStarted first");
-    return await this.conn.prompt({ sessionId, prompt: [{ type: "text", text }] });
+    if (!this.conn || !this.exitPromise) {
+      throw new Error("kiro-cli is not running — call ensureStarted first");
+    }
+    const exitPromise = this.exitPromise;
+    try {
+      return await Promise.race([
+        this.conn.prompt({ sessionId, prompt: [{ type: "text", text }] }),
+        exitPromise,
+      ]);
+    } catch (err) {
+      // The SDK may reject with "ACP connection closed" slightly before the
+      // OS exit event fires. Give the exit promise a few event-loop turns to win;
+      // if it does, that error supersedes the SDK's connection-closed error.
+      const yieldToEventLoop = new Promise<null>((r) => setTimeout(() => r(null), 50));
+      const exitError = await Promise.race([
+        exitPromise,
+        yieldToEventLoop,
+      ]).catch((e: unknown) => e);
+      if (exitError instanceof Error && exitError.message.includes("exited unexpectedly")) {
+        throw exitError;
+      }
+      throw err;
+    }
   }
 
   async cancel(sessionId: string): Promise<void> {
@@ -128,5 +154,7 @@ export class KiroConnection {
     this.child?.kill();
     this.child = undefined;
     this.conn = undefined;
+    this.exitPromise = undefined;
+    this.starting = undefined;
   }
 }

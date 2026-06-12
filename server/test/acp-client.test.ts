@@ -84,3 +84,28 @@ describe("KiroConnection", () => {
     expect(kiro.launchArgs).not.toContain("--effort");
   });
 });
+
+describe("KiroConnection crash handling", () => {
+  it("rejects an in-flight prompt when the process dies, and fires onExit", async () => {
+    kiro = fakeKiro("crash_during_prompt");
+    let exited = false;
+    kiro.onExit = () => {
+      exited = true;
+    };
+    const sessionId = await kiro.newSession("/tmp");
+    await expect(kiro.prompt(sessionId, "boom")).rejects.toThrow(/exited unexpectedly/);
+    expect(exited).toBe(true);
+    expect(kiro.isAlive()).toBe(false);
+  });
+
+  it("respawns on the next call after a crash", async () => {
+    kiro = fakeKiro("crash_during_prompt");
+    const s1 = await kiro.newSession("/tmp");
+    await expect(kiro.prompt(s1, "boom")).rejects.toThrow();
+    // fixture mode is fixed per process; a fresh spawn still crashes on prompt,
+    // but newSession proves the respawn + re-handshake works
+    const s2 = await kiro.newSession("/tmp");
+    expect(s2).toMatch(/^sess_fake_/);
+    expect(kiro.isAlive()).toBe(true);
+  });
+});
