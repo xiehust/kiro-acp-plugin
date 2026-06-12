@@ -4,6 +4,17 @@ Claude Code plugin: delegate tasks to the local [kiro-cli](https://kiro.dev)
 agent as a multi-turn sub-agent. One Node process bridges MCP (toward Claude
 Code) and ACP (toward `kiro-cli acp`).
 
+## Architecture
+
+![kiro-acp-mcp architecture](docs/assets/architecture.png)
+
+Claude Code calls the plugin's MCP tools over stdio JSON-RPC. The bundled
+server is simultaneously an **MCP server** (toward Claude Code) and an **ACP
+client** (toward a lazily-spawned, long-lived `kiro-cli acp` child). It maps
+`kiro_prompt`/`kiro_cancel`/`kiro_list_sessions` onto ACP `session/new` +
+`session/prompt` + `session/cancel`, multiplexes many sessions over one kiro
+process, and relays ACP `session/update` notifications back as MCP progress.
+
 ## Requirements
 
 - Node.js >= 20
@@ -37,6 +48,46 @@ Then in Claude Code: `/mcp` should list a `kiro` server with 3 tools.
 
 `/kiro <task>` is a shortcut command; the `delegating-to-kiro` skill teaches
 Claude when to delegate and to always verify results.
+
+## Usage example
+
+The simplest path — just ask Claude, and the skill decides to delegate:
+
+> **You:** Have kiro add input validation to `src/api/users.ts` — reject
+> requests with a missing or non-string `email`, return 400. Then verify it.
+
+Claude calls `kiro_prompt` with an enriched task, kiro does the work on your
+filesystem while progress streams in, and Claude verifies the diff before
+reporting back:
+
+```
+> kiro_prompt(prompt: "In src/api/users.ts add validation to the create-user
+                       handler: if `email` is missing or not a string, respond
+                       400 with {error: 'email required'}. Keep existing style.")
+  … [progress] working on src/api/users.ts
+  … [tool] edit src/api/users.ts (completed)
+  ← session_id: 7f3a… | kiro added the guard and a 400 branch | 1 tool call
+
+Claude then runs `git diff` and the test suite itself, then tells you what
+changed and that it verified the behavior.
+```
+
+Follow up in the **same** kiro session (no need to restate context):
+
+> **You:** Now have kiro add a unit test for that 400 case.
+
+Claude reuses the returned `session_id`, so kiro already remembers the change.
+
+Or trigger delegation explicitly with the command:
+
+```
+/kiro refactor the retry logic in src/net/client.ts to use exponential backoff
+```
+
+Manage in-flight work:
+
+- "list the kiro sessions" → `kiro_list_sessions()`
+- "cancel that kiro task" → `kiro_cancel(session_id)`
 
 ## Configuration (env, set in .mcp.json or your shell)
 
