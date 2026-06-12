@@ -22,12 +22,12 @@ process, and relays ACP `session/update` notifications back as MCP progress.
 
 ## Install (from the marketplace)
 
-    claude plugin marketplace add xiehust/kiro_acp_plugin
+    claude plugin marketplace add xiehust/kiro-acp-plugin
     claude plugin install kiro-acp-plugin@kiro-acp-plugin
 
 Or inside a Claude Code session:
 
-    /plugin marketplace add xiehust/kiro_acp_plugin
+    /plugin marketplace add xiehust/kiro-acp-plugin
     /plugin install kiro-acp-plugin@kiro-acp-plugin
 
 No build step needed — `server/dist` ships prebuilt in the repo.
