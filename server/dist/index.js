@@ -30510,7 +30510,7 @@ function buildContext() {
   };
 }
 function buildServer(ctx) {
-  const server = new McpServer({ name: "kiro-acp-mcp", version: "0.1.1" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.2.0" });
   server.registerTool(
     "kiro_prompt",
     {
@@ -30539,7 +30539,7 @@ function buildServer(ctx) {
       try {
         return { content: [{ type: "text", text: await kiroPrompt(ctx, args, onProgress) }] };
       } catch (err) {
-        console.error("[kiro-acp-mcp] kiro_prompt failed:", err);
+        console.error("[kiro-acp-plugin] kiro_prompt failed:", err);
         return {
           content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }],
           isError: true
@@ -30568,17 +30568,17 @@ function buildServer(ctx) {
 
 // src/index.ts
 process.on("uncaughtException", (err) => {
-  console.error("[kiro-acp-mcp] uncaught exception:", err);
+  console.error("[kiro-acp-plugin] uncaught exception:", err);
   process.exit(1);
 });
 process.on("unhandledRejection", (reason) => {
-  console.error("[kiro-acp-mcp] unhandled rejection:", reason);
+  console.error("[kiro-acp-plugin] unhandled rejection:", reason);
 });
 try {
   const ctx = buildContext();
   const server = buildServer(ctx);
   await server.connect(new StdioServerTransport());
 } catch (err) {
-  console.error("[kiro-acp-mcp] failed to start:", err instanceof Error ? err.message : err);
+  console.error("[kiro-acp-plugin] failed to start:", err instanceof Error ? err.message : err);
   process.exit(1);
 }

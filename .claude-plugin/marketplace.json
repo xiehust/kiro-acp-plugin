@@ -6,10 +6,10 @@
   },
   "plugins": [
     {
-      "name": "kiro-acp-mcp",
+      "name": "kiro-acp-plugin",
       "source": "./",
       "description": "Delegate tasks to the local kiro-cli agent as a multi-turn sub-agent, via an MCP-to-ACP bridge",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "author": {
         "name": "River Xie"
       },

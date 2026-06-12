@@ -4,11 +4,11 @@ import { buildContext, buildServer } from "./server.js";
 
 // stdout is the MCP transport — all diagnostics MUST go to stderr.
 process.on("uncaughtException", (err) => {
-  console.error("[kiro-acp-mcp] uncaught exception:", err);
+  console.error("[kiro-acp-plugin] uncaught exception:", err);
   process.exit(1);
 });
 process.on("unhandledRejection", (reason) => {
-  console.error("[kiro-acp-mcp] unhandled rejection:", reason);
+  console.error("[kiro-acp-plugin] unhandled rejection:", reason);
 });
 
 try {
@@ -16,6 +16,6 @@ try {
   const server = buildServer(ctx);
   await server.connect(new StdioServerTransport());
 } catch (err) {
-  console.error("[kiro-acp-mcp] failed to start:", err instanceof Error ? err.message : err);
+  console.error("[kiro-acp-plugin] failed to start:", err instanceof Error ? err.message : err);
   process.exit(1);
 }

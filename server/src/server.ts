@@ -26,7 +26,7 @@ export function buildContext(): ToolContext {
 }
 
 export function buildServer(ctx: ToolContext): McpServer {
-  const server = new McpServer({ name: "kiro-acp-mcp", version: "0.1.1" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.2.0" });
 
   server.registerTool(
     "kiro_prompt",
@@ -63,7 +63,7 @@ export function buildServer(ctx: ToolContext): McpServer {
       try {
         return { content: [{ type: "text" as const, text: await kiroPrompt(ctx, args, onProgress) }] };
       } catch (err) {
-        console.error("[kiro-acp-mcp] kiro_prompt failed:", err);
+        console.error("[kiro-acp-plugin] kiro_prompt failed:", err);
         return {
           content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
           isError: true,

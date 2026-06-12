@@ -17,7 +17,7 @@
     <filter id="glow-purple"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect width="1040" height="620" fill="url(#bg-grad)"/>
-  <text x="520" y="44" text-anchor="middle" class="hdr" font-size="17">kiro-acp-mcp &#8212; MCP &#8596; ACP bridge</text>
+  <text x="520" y="44" text-anchor="middle" class="hdr" font-size="17">kiro-acp-plugin &#8212; MCP &#8596; ACP bridge</text>
   <text x="520" y="66" text-anchor="middle" class="sub">delegate a task to the local kiro-cli agent, get a verified result back</text>
   <rect x="40" y="95" width="215" height="470" rx="8" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5"/>
   <text x="147" y="122" text-anchor="middle" class="hdr lbl" fill="#3b82f6">CLAUDE CODE (host)</text>

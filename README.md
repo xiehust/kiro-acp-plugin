@@ -1,4 +1,4 @@
-# kiro-acp-mcp
+# kiro-acp-plugin
 
 Claude Code plugin: delegate tasks to the local [kiro-cli](https://kiro.dev)
 agent as a multi-turn sub-agent. One Node process bridges MCP (toward Claude
@@ -6,7 +6,7 @@ Code) and ACP (toward `kiro-cli acp`).
 
 ## Architecture
 
-![kiro-acp-mcp architecture](docs/assets/architecture.png)
+![kiro-acp-plugin architecture](docs/assets/architecture.png)
 
 Claude Code calls the plugin's MCP tools over stdio JSON-RPC. The bundled
 server is simultaneously an **MCP server** (toward Claude Code) and an **ACP
@@ -23,19 +23,19 @@ process, and relays ACP `session/update` notifications back as MCP progress.
 ## Install (from the marketplace)
 
     claude plugin marketplace add xiehust/kiro_acp_plugin
-    claude plugin install kiro-acp-mcp@kiro-acp-plugin
+    claude plugin install kiro-acp-plugin@kiro-acp-plugin
 
 Or inside a Claude Code session:
 
     /plugin marketplace add xiehust/kiro_acp_plugin
-    /plugin install kiro-acp-mcp@kiro-acp-plugin
+    /plugin install kiro-acp-plugin@kiro-acp-plugin
 
 No build step needed — `server/dist` ships prebuilt in the repo.
 
 ## Install (local development)
 
     cd server && npm install && npm run build
-    claude --plugin-dir /path/to/kiro-acp-mcp
+    claude --plugin-dir /path/to/kiro-acp-plugin
 
 Then in Claude Code: `/mcp` should list a `kiro` server with 3 tools.
 
