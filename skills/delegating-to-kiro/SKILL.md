@@ -24,6 +24,20 @@ Keep yourself (do NOT delegate):
   need to re-explain turn by turn
 - Tasks in files you are concurrently editing (you will race kiro)
 
+## Direct tool vs kiro-sub-agent
+
+Two ways to delegate — pick by task size and context cost:
+
+- **Call `kiro_prompt` directly** for short tasks, when the user wants to
+  watch progress live, or when you need the raw result in this conversation.
+- **Dispatch the `kiro-sub-agent` agent** for long-running tasks, parallel
+  fan-out (several independent tasks at once — the bridge multiplexes
+  sessions over one kiro process), or when this conversation's context is
+  precious: the sub-agent absorbs kiro's verbose output AND does the
+  verification, returning only a compact verdict + `session_id`. Give it the
+  full brief (task, paths, conventions, acceptance criteria) — it cannot see
+  this conversation.
+
 ## Writing the delegation prompt
 
 kiro starts with zero knowledge of your conversation. Always include:

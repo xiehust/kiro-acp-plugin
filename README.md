@@ -49,6 +49,19 @@ Then in Claude Code: `/mcp` should list a `kiro` server with 3 tools.
 `/kiro <task>` is a shortcut command; the `delegating-to-kiro` skill teaches
 Claude when to delegate and to always verify results.
 
+### kiro-sub-agent
+
+The plugin also ships a `kiro-sub-agent` agent type: a coordinator that wraps
+the whole delegate-then-verify loop in an isolated context. Use it for
+long-running tasks or parallel fan-out (dispatch several at once — the bridge
+multiplexes sessions over one kiro process). kiro's verbose output and the
+`git diff`/test verification stay inside the sub-agent; your main
+conversation gets back only a compact verdict, the changed files, the
+verification evidence, and the `session_id` for follow-ups.
+
+> Have the kiro-sub-agent build the CSV exporter in src/export/ while we
+> keep working on the API.
+
 ## Usage example
 
 The simplest path — just ask Claude, and the skill decides to delegate:

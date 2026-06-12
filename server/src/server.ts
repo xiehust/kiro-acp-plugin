@@ -26,7 +26,7 @@ export function buildContext(): ToolContext {
 }
 
 export function buildServer(ctx: ToolContext): McpServer {
-  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.2.0" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.3.0" });
 
   server.registerTool(
     "kiro_prompt",
