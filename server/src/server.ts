@@ -23,11 +23,13 @@ export function buildContext(): ToolContext {
     timeoutMs,
     defaultCwd: process.cwd(),
     cancelGraceMs: 5_000,
+    // the plugin's .mcp.json defaults this to claude-opus-4.8 (user-overridable)
+    defaultModel: process.env.KIRO_MCP_MODEL || undefined,
   };
 }
 
 export function buildServer(ctx: ToolContext): McpServer {
-  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.2" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.3" });
 
   server.registerTool(
     "kiro_prompt",

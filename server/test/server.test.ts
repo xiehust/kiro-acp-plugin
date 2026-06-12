@@ -25,6 +25,7 @@ afterEach(async () => {
   delete process.env.KIRO_MCP_ARGS_OVERRIDE;
   delete process.env.KIRO_MCP_TRUST_TOOLS;
   delete process.env.KIRO_MCP_TIMEOUT_MS;
+  delete process.env.KIRO_MCP_MODEL;
 });
 
 describe("MCP server", () => {
@@ -77,6 +78,14 @@ describe("buildContext env handling", () => {
     process.env.KIRO_MCP_TRUST_TOOLS = "fs_read,fs_write";
     c = buildContext();
     expect(c.kiro.launchArgs).toEqual(["acp", "--trust-tools=fs_read,fs_write"]);
+  });
+
+  it("reads the default model from KIRO_MCP_MODEL", () => {
+    process.env.KIRO_MCP_BIN = "kiro-cli";
+    delete process.env.KIRO_MCP_MODEL;
+    expect(buildContext().defaultModel).toBeUndefined();
+    process.env.KIRO_MCP_MODEL = "claude-opus-4.8";
+    expect(buildContext().defaultModel).toBe("claude-opus-4.8");
   });
 
   it("falls back to the default timeout when KIRO_MCP_TIMEOUT_MS is not a positive number", () => {

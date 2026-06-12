@@ -132,6 +132,11 @@ Claude 会复用返回的 `session_id`,kiro 自己记得之前的改动。
 
 ## 配置(环境变量,在 .mcp.json 或 shell 中设置)
 
+- `KIRO_MCP_MODEL` —— 首个 kiro 会话使用的模型,启动时以 `--model` 传入。
+  插件默认 `claude-opus-4.8`(通过 `.mcp.json`;在 shell 中 export
+  `KIRO_MCP_MODEL` 可覆盖,设为 `auto` 则由 kiro 自选)。首次
+  `kiro_prompt` 调用里显式传 `model` 参数优先级更高。可用 id 见:
+  `kiro-cli chat --list-models`。
 - `KIRO_MCP_TIMEOUT_MS` —— 单次 prompt 超时(默认 1800000 = 30 分钟)
 - `KIRO_MCP_TRUST_TOOLS` —— 逗号分隔列表,生成 `--trust-tools=...`(默认:`--trust-all-tools`)
 - `KIRO_MCP_BIN` —— kiro 可执行文件路径(默认:PATH 上的 `kiro-cli`)

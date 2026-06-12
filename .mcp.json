@@ -2,7 +2,10 @@
   "mcpServers": {
     "kiro": {
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/index.js"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/dist/index.js"],
+      "env": {
+        "KIRO_MCP_MODEL": "${KIRO_MCP_MODEL:-claude-opus-4.8}"
+      }
     }
   }
 }

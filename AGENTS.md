@@ -45,9 +45,9 @@ Server source (`server/src/`), in dependency order:
 - `sessions.ts` — in-memory `SessionRegistry` (idle | running | dead); kiro process exit marks all sessions dead
 
 Key semantics to preserve:
-- One kiro process serves all sessions. `model`/`agent`/`effort` are launch-time CLI flags: they only apply on the call that first spawns kiro, and are silently noted as ignored afterwards.
+- One kiro process serves all sessions. `model`/`agent`/`effort` are launch-time CLI flags: they only apply on the call that first spawns kiro, and are noted as ignored afterwards (only when passed explicitly). When no `model` is given, `ctx.defaultModel` (`KIRO_MCP_MODEL`) is used; the plugin's `.mcp.json` defaults it to `claude-opus-4.8` via `${KIRO_MCP_MODEL:-claude-opus-4.8}`, and `codex/install.sh` writes the same default into Codex's config.
 - Permission requests from kiro are refused defensively (`requestPermission` → cancelled) because the child runs with `--trust-all-tools` (or `KIRO_MCP_TRUST_TOOLS`).
-- Env config: `KIRO_MCP_TIMEOUT_MS` (default 30 min), `KIRO_MCP_TRUST_TOOLS`, `KIRO_MCP_BIN`, and `KIRO_MCP_ARGS_OVERRIDE` (tests only — replaces the arg list to point at the fake agent).
+- Env config: `KIRO_MCP_MODEL` (default model, see above), `KIRO_MCP_TIMEOUT_MS` (default 30 min), `KIRO_MCP_TRUST_TOOLS`, `KIRO_MCP_BIN`, and `KIRO_MCP_ARGS_OVERRIDE` (tests only — replaces the arg list to point at the fake agent).
 
 ## Tests
 

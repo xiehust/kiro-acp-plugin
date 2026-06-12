@@ -158,6 +158,26 @@ describe("kiroPrompt", () => {
     expect(out).toMatch(/stopReason: cancelled/);
   });
 
+  it("applies the default model as a launch flag when the call gives none", async () => {
+    ctx = makeCtx();
+    ctx.defaultModel = "claude-opus-4.8";
+    const out1 = await kiroPrompt(ctx, { prompt: "a" });
+    expect(ctx.kiro.launchArgs).toEqual(expect.arrayContaining(["--model", "claude-opus-4.8"]));
+    expect(out1).not.toContain("ignored");
+    // follow-up without a model: no second --model, and no misleading "ignored" note
+    const out2 = await kiroPrompt(ctx, { prompt: "b" });
+    expect(out2).not.toContain("ignored");
+    expect(ctx.kiro.launchArgs.filter((a) => a === "--model")).toHaveLength(1);
+  });
+
+  it("an explicit model on the first call beats the default model", async () => {
+    ctx = makeCtx();
+    ctx.defaultModel = "claude-opus-4.8";
+    await kiroPrompt(ctx, { prompt: "a", model: "claude-haiku-4.5" });
+    expect(ctx.kiro.launchArgs).toEqual(expect.arrayContaining(["--model", "claude-haiku-4.5"]));
+    expect(ctx.kiro.launchArgs).not.toContain("claude-opus-4.8");
+  });
+
   it("applies model/agent/effort as launch flags only before first spawn", async () => {
     ctx = makeCtx();
     const out1 = await kiroPrompt(ctx, { prompt: "a", model: "m1", effort: "high" });

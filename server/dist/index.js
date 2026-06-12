@@ -30381,10 +30381,15 @@ async function kiroPrompt(ctx, args, onProgress) {
     }
   };
   const launchFlags = [];
-  if (args.model) launchFlags.push("--model", args.model);
+  if (args.model) {
+    launchFlags.push("--model", args.model);
+  } else if (ctx.defaultModel && !ctx.kiro.launchArgs.includes("--model")) {
+    launchFlags.push("--model", ctx.defaultModel);
+  }
   if (args.agent) launchFlags.push("--agent", args.agent);
   if (args.effort) launchFlags.push("--effort", args.effort);
-  if (launchFlags.length > 0 && !ctx.kiro.addLaunchArgs(launchFlags)) {
+  const explicitFlags = Boolean(args.model || args.agent || args.effort);
+  if (launchFlags.length > 0 && !ctx.kiro.addLaunchArgs(launchFlags) && explicitFlags) {
     notes.push("note: model/agent/effort ignored \u2014 the kiro process is already running with its original launch settings");
   }
   let sessionId;
@@ -30551,11 +30556,13 @@ function buildContext() {
     sessions,
     timeoutMs,
     defaultCwd: process.cwd(),
-    cancelGraceMs: 5e3
+    cancelGraceMs: 5e3,
+    // the plugin's .mcp.json defaults this to claude-opus-4.8 (user-overridable)
+    defaultModel: process.env.KIRO_MCP_MODEL || void 0
   };
 }
 function buildServer(ctx) {
-  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.2" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.3" });
   server.registerTool(
     "kiro_prompt",
     {

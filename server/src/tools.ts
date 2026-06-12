@@ -9,6 +9,8 @@ export interface ToolContext {
   defaultCwd: string;
   /** How long after a timeout-triggered cancel to wait for the turn to actually end (default 5s). */
   cancelGraceMs?: number;
+  /** Model passed as --model when spawning kiro, unless the first call gives an explicit one (KIRO_MCP_MODEL). */
+  defaultModel?: string;
 }
 
 export interface PromptArgs {
@@ -47,10 +49,17 @@ export async function kiroPrompt(ctx: ToolContext, args: PromptArgs, onProgress?
   // model/agent/effort are kiro-cli LAUNCH flags: they only take effect if the
   // kiro process hasn't been spawned yet (i.e. the first delegation).
   const launchFlags: string[] = [];
-  if (args.model) launchFlags.push("--model", args.model);
+  if (args.model) {
+    launchFlags.push("--model", args.model);
+  } else if (ctx.defaultModel && !ctx.kiro.launchArgs.includes("--model")) {
+    // no explicit model: fall back to the configured default; the includes()
+    // guard keeps a second --model off the command line (kiro-cli rejects dupes)
+    launchFlags.push("--model", ctx.defaultModel);
+  }
   if (args.agent) launchFlags.push("--agent", args.agent);
   if (args.effort) launchFlags.push("--effort", args.effort);
-  if (launchFlags.length > 0 && !ctx.kiro.addLaunchArgs(launchFlags)) {
+  const explicitFlags = Boolean(args.model || args.agent || args.effort);
+  if (launchFlags.length > 0 && !ctx.kiro.addLaunchArgs(launchFlags) && explicitFlags) {
     notes.push("note: model/agent/effort ignored — the kiro process is already running with its original launch settings");
   }
 

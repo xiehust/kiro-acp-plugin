@@ -35,6 +35,10 @@ args = ["$SERVER_JS"]
 # 60s. Keep this >= KIRO_MCP_TIMEOUT_MS/1000 (bridge default: 1800s = 30 min).
 tool_timeout_sec = 1860
 startup_timeout_sec = 20
+
+[mcp_servers.kiro.env]
+# model for the first kiro session ("auto" = kiro decides)
+KIRO_MCP_MODEL = "claude-opus-4.8"
 EOF
   echo "config: added [mcp_servers.kiro] to $CONFIG"
 fi

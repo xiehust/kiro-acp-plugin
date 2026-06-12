@@ -13,8 +13,12 @@ args = ["/path/to/kiro-acp-plugin/server/dist/index.js"]
 tool_timeout_sec = 1860
 startup_timeout_sec = 20
 
-# Optional bridge configuration (all have sensible defaults):
-# [mcp_servers.kiro.env]
+[mcp_servers.kiro.env]
+# Model for the first kiro session (kiro_prompt's model param on the first
+# call wins; "auto" lets kiro choose). See: kiro-cli chat --list-models
+KIRO_MCP_MODEL = "claude-opus-4.8"
+
+# Other optional bridge configuration (all have sensible defaults):
 # KIRO_MCP_TIMEOUT_MS = "1800000"            # per-prompt timeout (default 30 min)
 # KIRO_MCP_TRUST_TOOLS = "fs_read,fs_write"  # default: --trust-all-tools
 # KIRO_MCP_BIN = "/usr/local/bin/kiro-cli"   # default: kiro-cli on PATH

@@ -137,6 +137,11 @@ Manage in-flight work:
 
 ## Configuration (env, set in .mcp.json or your shell)
 
+- `KIRO_MCP_MODEL` — model for the first kiro session, passed as `--model` at
+  spawn. The plugin defaults this to `claude-opus-4.8` (via `.mcp.json`;
+  export `KIRO_MCP_MODEL` in your shell to override, or set it to `auto` to
+  let kiro choose). An explicit `model` on the first `kiro_prompt` call still
+  wins. Valid ids: `kiro-cli chat --list-models`.
 - `KIRO_MCP_TIMEOUT_MS` — per-prompt timeout (default 1800000 = 30 min)
 - `KIRO_MCP_TRUST_TOOLS` — comma list for `--trust-tools=...` (default: `--trust-all-tools`)
 - `KIRO_MCP_BIN` — kiro binary path (default: `kiro-cli` on PATH)
