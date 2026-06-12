@@ -82,6 +82,43 @@ describe("kiroPrompt", () => {
     await expect(kiroPrompt(ctx, { prompt: "x" })).rejects.toThrow(/kiro-cli login/);
   });
 
+  it("attaches a rejection handler to the prompt orphaned by a timeout", async () => {
+    const unhandled: unknown[] = [];
+    const handler = (r: unknown) => unhandled.push(r);
+    process.on("unhandledRejection", handler);
+    try {
+      let rejectPrompt!: (e: Error) => void;
+      const stub = {
+        addLaunchArgs: () => true,
+        isAlive: () => true,
+        subscribe: () => () => {},
+        newSession: async () => "sess_stub_1",
+        prompt: () => new Promise((_, rej) => { rejectPrompt = rej; }),
+        cancel: async () => {},
+        stop: async () => {},
+      } as unknown as KiroConnection;
+      const sessions = new SessionRegistry();
+      const out = await kiroPrompt({ kiro: stub, sessions, timeoutMs: 50, defaultCwd: "/tmp" }, { prompt: "x" });
+      expect(out).toMatch(/timed out/);
+      rejectPrompt(new Error("late failure"));
+      await new Promise((r) => setTimeout(r, 20));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", handler);
+    }
+  });
+
+  it("rejects a second prompt on a session that is already running", async () => {
+    ctx = makeCtx("hang");
+    const first = kiroPrompt(ctx, { prompt: "long task" });
+    await new Promise((r) => setTimeout(r, 300));
+    const running = ctx.sessions.list().find((s) => s.status === "running")!;
+    await expect(kiroPrompt(ctx, { prompt: "second", session_id: running.id })).rejects.toThrow(/already has a prompt in flight/);
+    await kiroCancel(ctx, running.id);
+    const out = await first;
+    expect(out).toMatch(/stopReason: cancelled/);
+  });
+
   it("applies model/agent/effort as launch flags only before first spawn", async () => {
     ctx = makeCtx();
     const out1 = await kiroPrompt(ctx, { prompt: "a", model: "m1", effort: "high" });

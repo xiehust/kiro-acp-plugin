@@ -33,6 +33,15 @@ const AUTH_REQUIRED = -32000;
 export async function kiroPrompt(ctx: ToolContext, args: PromptArgs, onProgress?: ProgressFn): Promise<string> {
   const notes: string[] = [];
 
+  const report = (message: string): void => {
+    if (!onProgress) return;
+    try {
+      void Promise.resolve(onProgress(message)).catch(() => {});
+    } catch {
+      // synchronous throw from a sloppy callback — progress is best-effort
+    }
+  };
+
   // model/agent/effort are kiro-cli LAUNCH flags: they only take effect if the
   // kiro process hasn't been spawned yet (i.e. the first delegation).
   const launchFlags: string[] = [];
@@ -57,7 +66,7 @@ export async function kiroPrompt(ctx: ToolContext, args: PromptArgs, onProgress?
     if (u.sessionUpdate === "agent_message_chunk") {
       if (u.content.type === "text") {
         textParts.push(u.content.text);
-        void onProgress?.(u.content.text.slice(0, 200));
+        report(u.content.text.slice(0, 200));
       }
     } else if (u.sessionUpdate === "tool_call") {
       const prev = toolCalls.get(u.toolCallId) ?? { title: "(unknown)", kind: "other", status: "pending" };
@@ -67,7 +76,7 @@ export async function kiroPrompt(ctx: ToolContext, args: PromptArgs, onProgress?
         status: u.status ?? prev.status,
       };
       toolCalls.set(u.toolCallId, info);
-      void onProgress?.(`[tool] ${info.title} (${info.status})`);
+      report(`[tool] ${info.title} (${info.status})`);
     } else if (u.sessionUpdate === "tool_call_update") {
       const prev = toolCalls.get(u.toolCallId) ?? { title: "(unknown)", kind: "other", status: "pending" };
       const info: ToolCallInfo = {
@@ -76,15 +85,18 @@ export async function kiroPrompt(ctx: ToolContext, args: PromptArgs, onProgress?
         status: (u.status != null ? u.status : prev.status),
       };
       toolCalls.set(u.toolCallId, info);
-      void onProgress?.(`[tool] ${info.title} (${info.status})`);
+      report(`[tool] ${info.title} (${info.status})`);
     } else if (u.sessionUpdate === "plan") {
-      void onProgress?.("[kiro updated its plan]");
+      report("[kiro updated its plan]");
     }
   });
 
   ctx.sessions.setStatus(sessionId, "running");
   try {
-    const resp = await withTimeout(ctx.kiro.prompt(sessionId, args.prompt), ctx.timeoutMs);
+    const pending = ctx.kiro.prompt(sessionId, args.prompt);
+    // keep the orphan harmless if the timeout wins the race and it later rejects
+    pending.catch(() => {});
+    const resp = await withTimeout(pending, ctx.timeoutMs);
     ctx.sessions.setStatus(sessionId, "idle");
     if (resp.stopReason !== "end_turn") notes.push(`stopReason: ${resp.stopReason}`);
   } catch (err) {
@@ -95,7 +107,10 @@ export async function kiroPrompt(ctx: ToolContext, args: PromptArgs, onProgress?
     } else if (err instanceof KiroExitError || !ctx.kiro.isAlive()) {
       // crash mid-prompt: report partial output instead of throwing away what we have
       ctx.sessions.setStatus(sessionId, "dead");
-      notes.push(`note: ${err instanceof Error ? err.message : String(err)} — partial output below; start a new session`);
+      const msg = err instanceof KiroExitError
+        ? err.message
+        : `kiro-cli exited unexpectedly (${err instanceof Error ? err.message : String(err)})`;
+      notes.push(`note: ${msg} — partial output below; start a new session`);
     } else {
       unsubscribe();
       throw translateAuthError(err);
@@ -133,6 +148,12 @@ async function resolveSession(ctx: ToolContext, args: PromptArgs): Promise<strin
       throw new Error(
         `session ${args.session_id} is dead (kiro-cli restarted since it was created). ` +
           `Start a new session (omit session_id) and restate the context.`,
+      );
+    }
+    if (info.status === "running") {
+      throw new Error(
+        `session ${args.session_id} already has a prompt in flight — wait for it to finish, ` +
+          `cancel it with kiro_cancel, or start a new session`,
       );
     }
     return args.session_id;
