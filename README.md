@@ -9,6 +9,36 @@ Code) and ACP (toward `kiro-cli acp`).
 The bridge itself is a plain stdio MCP server, so it also works in other MCP
 hosts — [OpenAI Codex CLI setup below](#use-with-openai-codex-cli).
 
+## Why delegate?
+
+Delegating implementation to kiro moves the expensive part of coding — the
+many-turn read/edit/test/fix loop — off the host model and onto kiro's
+credit-billed agent, while the host keeps only the cheap work (kicking off the
+task and verifying the result). A controlled A/B experiment (same Opus 4.8
+model on both sides, three coding tasks small→large, independent `pytest`
+verification — [full report](docs/experiments/2026-06-12-token-credit-cost-experiment.md))
+found:
+
+- **~31% fewer host tokens, and ~65% fewer host *output* tokens** — output is
+  the most expensive line item ($25/M), and delegation pushes nearly all of it
+  to kiro. The host's token bill is converted into kiro credits ($0.04 each),
+  which were only ~11% of the delegated total — the bulk of cost stays in host
+  tokens, dominated by plugin load + verification.
+- **~9% cheaper overall** across the three tasks ($1.367 vs $1.502), but the
+  advantage is **size-dependent**: small one-function tasks were ~15% *more*
+  expensive delegated (fixed overhead doesn't amortize), while medium/larger
+  tasks were ~17% cheaper. Delegate the substantial tasks; do the trivial ones
+  directly.
+- **No quality regression** — all runs passed independent `pytest`; the
+  delegated arm produced at least as many test cases as the direct arm.
+
+So the plugin's value isn't "always cheaper" — it's that for non-trivial,
+well-specified implementation work it shifts spend from your Opus token pool to
+kiro's credit pool, cuts the priciest output tokens, and keeps the host context
+small (the host only sees a kickoff + a verification pass, not the full
+implementation transcript). Numbers are n=1 per cell on minute-scale tasks; see
+the report's limitations.
+
 ## Architecture
 
 ![kiro-acp-plugin architecture](docs/assets/architecture.png)
