@@ -26,6 +26,7 @@ Code)与 ACP(面向 `kiro-cli acp`)。
   把有分量的任务委派出去,琐碎的直接自己做。
 - **质量不打折** —— 全部运行均通过独立 `pytest`,委派臂产出的测试用例数不少于
   直接臂。
+![kiro](docs/assets/krio-experiment.png)
 
 所以这个插件的价值不是"永远更便宜",而是:对于非平凡、可清晰描述验收标准的实现型
 任务,它把开销从你的 Opus token 池转移到 kiro 的 credit 池,削减最贵的 output

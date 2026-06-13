@@ -31,7 +31,7 @@ found:
   directly.
 - **No quality regression** — all runs passed independent `pytest`; the
   delegated arm produced at least as many test cases as the direct arm.
-
+![kiro](docs/assets/krio-experiment.png)
 So the plugin's value isn't "always cheaper" — it's that for non-trivial,
 well-specified implementation work it shifts spend from your Opus token pool to
 kiro's credit pool, cuts the priciest output tokens, and keeps the host context
