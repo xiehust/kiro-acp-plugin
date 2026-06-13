@@ -44,6 +44,36 @@ Claude Code 通过 stdio JSON-RPC 调用插件的 MCP 工具。内置的 server 
 kiro 进程上复用多个会话,并把 ACP `session/update` 通知以 MCP 进度通知的
 形式转发回来。
 
+## 会话模型(多轮记忆)
+
+委派是有状态的:你可以在多次 `kiro_prompt` 调用之间持续对同一个 kiro 会话说话,
+kiro 会记得之前几轮的内容 —— 无需重述上下文。记忆分两层:
+
+- **对话历史保存在 kiro 进程里。** 桥启动一个常驻的 `kiro-cli acp` 子进程
+  (懒加载,首次委派时才拉起)。`session/new` 返回一个 `sessionId`,kiro 在自己
+  进程内持有该会话的完整对话记录。桥**不存任何对话文本**。
+- **桥只维护一张轻量登记表** —— 每个会话仅 `{id, cwd, status, lastActivityAt}`,
+  状态为 `idle | running | dead`。它负责生命周期与并发,而非记忆。
+
+多轮线程怎么串起来:首次 `kiro_prompt`(不传 `session_id`)创建会话并返回它的
+`session_id`;之后每次调用把同一个 `session_id` 传回,桥就把 prompt 路由到同一段
+kiro 对话记录上。单个 kiro 进程并发复用多个会话(通知按 `sessionId` 路由),
+这正是 `kiro-sub-agent` 能并行分发多个委派而互不串台的基础。
+
+保证多轮正确的规则:
+
+- `idle` → 可复用:传它的 `session_id` 继续这条线程。
+- `running` → 有 prompt 在飞;对它再发 prompt 会被拒绝(等待、`kiro_cancel`,
+  或开新会话)。
+- `dead` → kiro 进程在会话创建后退出过,记忆已随进程消失;开新会话
+  (省略 `session_id`)并重述上下文。
+- prompt **超时**只取消当前轮、会话仍可用(回到 `idle`);只有 kiro **崩溃**
+  才会把会话标记为 `dead`。
+
+已端到端实测:复用同一个 `session_id` 连发三次调用,kiro 记得第 1 轮的事实,
+也记得自己第 2 轮答案里的数值(`4273` → 要求加 1000 → `5273`),结束时会话为
+`idle` 且可继续复用。
+
 ## 环境要求
 
 - Node.js >= 20

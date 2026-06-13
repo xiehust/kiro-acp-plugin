@@ -50,6 +50,41 @@ client** (toward a lazily-spawned, long-lived `kiro-cli acp` child). It maps
 `session/prompt` + `session/cancel`, multiplexes many sessions over one kiro
 process, and relays ACP `session/update` notifications back as MCP progress.
 
+## Session model (multi-turn memory)
+
+Delegations are stateful: you can keep talking to the same kiro session across
+many `kiro_prompt` calls, and kiro remembers the earlier turns — no need to
+restate context. The memory lives in two layers:
+
+- **The conversation history lives in the kiro process.** The bridge spawns one
+  long-lived `kiro-cli acp` child (lazily, on first delegation). `session/new`
+  returns a `sessionId`, and kiro holds that session's full transcript inside
+  its own process. The bridge stores **no** conversation text.
+- **The bridge keeps only a lightweight registry** — `{id, cwd, status,
+  lastActivityAt}` per session, with status `idle | running | dead`. Its job is
+  lifecycle and concurrency, not memory.
+
+How a multi-turn thread is stitched together: the first `kiro_prompt` (no
+`session_id`) creates a session and returns its `session_id`; every later call
+passes that same `session_id` back, so the bridge routes the prompt to the same
+kiro transcript. One kiro process multiplexes many sessions concurrently
+(notifications are routed by `sessionId`), which is what lets `kiro-sub-agent`
+fan out parallel delegations without crosstalk.
+
+Rules that keep multi-turn correct:
+
+- `idle` → reusable: pass its `session_id` to continue the thread.
+- `running` → a prompt is in flight; a second prompt on it is rejected (wait,
+  `kiro_cancel`, or start a new session).
+- `dead` → the kiro process exited since the session was created, so its memory
+  is gone; start a new session (omit `session_id`) and restate context.
+- A prompt **timeout** cancels the turn but keeps the session usable (back to
+  `idle`); only a kiro **crash** marks sessions `dead`.
+
+Verified end-to-end: across three calls reusing one `session_id`, kiro recalled
+a fact from turn 1 and a value from its own turn-2 answer (`4273` → asked to add
+1000 → `5273`), with the session ending `idle` and reusable.
+
 ## Requirements
 
 - Node.js >= 20
