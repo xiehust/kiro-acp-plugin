@@ -19,15 +19,16 @@ model on both sides, three coding tasks small→large, independent `pytest`
 verification — [full report](docs/experiments/2026-06-12-token-credit-cost-experiment.md))
 found:
 
-- **~31% fewer host tokens, and ~65% fewer host *output* tokens** — output is
+- **~30% fewer host tokens, and ~65% fewer host *output* tokens** — output is
   the most expensive line item ($25/M), and delegation pushes nearly all of it
   to kiro. The host's token bill is converted into kiro credits ($0.04 each),
-  which were only ~11% of the delegated total — the bulk of cost stays in host
+  which were only ~9% of the delegated total — the bulk of cost stays in host
   tokens, dominated by plugin load + verification.
-- **~9% cheaper overall** across the three tasks ($1.367 vs $1.502), but the
-  advantage is **size-dependent**: small one-function tasks were ~15% *more*
-  expensive delegated (fixed overhead doesn't amortize), while medium/larger
-  tasks were ~17% cheaper. Delegate the substantial tasks; do the trivial ones
+- **~8% cheaper overall** across the three tasks ($1.48 vs $1.60), but the
+  advantage is **size-dependent**: small one-function tasks roughly break even
+  (the direction flips run-to-run — within trajectory noise once fixed overhead
+  stops amortizing), while medium/larger tasks were the consistent winners.
+  Delegate the substantial tasks; for trivial ones it's a wash, so do them
   directly.
 - **No quality regression** — all runs passed independent `pytest`; the
   delegated arm produced at least as many test cases as the direct arm.
