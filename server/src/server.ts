@@ -29,21 +29,21 @@ export function buildContext(): ToolContext {
 }
 
 export function buildServer(ctx: ToolContext): McpServer {
-  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.3" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.4" });
 
   server.registerTool(
     "kiro_prompt",
     {
       description:
-        "Delegate a task to the local kiro-cli coding agent and wait for the result. " +
-        "Returns kiro's reply, a session_id for follow-ups, and a summary of what it did. " +
-        "kiro knows nothing about your conversation: include file paths, constraints, and acceptance criteria.",
+        "Delegate a coding task to the local kiro-cli agent; blocks until done. " +
+        "Returns kiro's reply, a session_id for follow-ups, and a tool-call summary. " +
+        "kiro can't see this conversation — include file paths, constraints, and acceptance criteria.",
       inputSchema: {
-        prompt: z.string().describe("The task. Include relevant file paths, constraints, and acceptance criteria."),
-        session_id: z.string().optional().describe("Continue an existing kiro session (returned by a previous call)."),
-        cwd: z.string().optional().describe("Absolute working directory for a NEW session. Default: this project."),
-        model: z.string().optional().describe("Launch-time only: kiro model id. Ignored if kiro is already running."),
-        agent: z.string().optional().describe("Launch-time only: kiro agent profile name."),
+        prompt: z.string().describe("The task, with file paths, constraints, and acceptance criteria."),
+        session_id: z.string().optional().describe("Continue a prior kiro session (from a previous call)."),
+        cwd: z.string().optional().describe("Absolute working dir for a NEW session. Default: this project."),
+        model: z.string().optional().describe("Launch-time only; ignored once kiro is running."),
+        agent: z.string().optional().describe("Launch-time only: kiro agent profile."),
         effort: z.string().optional().describe("Launch-time only: low|medium|high|xhigh|max."),
       },
     },
@@ -87,7 +87,7 @@ export function buildServer(ctx: ToolContext): McpServer {
   server.registerTool(
     "kiro_list_sessions",
     {
-      description: "List kiro sessions managed by this server: id, status (idle|running|dead), cwd, last activity.",
+      description: "List kiro sessions: id, status (idle|running|dead), cwd, last activity.",
       inputSchema: {},
     },
     async () => ({ content: [{ type: "text" as const, text: kiroListSessions(ctx) }] }),

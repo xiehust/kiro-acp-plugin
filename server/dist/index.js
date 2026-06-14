@@ -30562,17 +30562,17 @@ function buildContext() {
   };
 }
 function buildServer(ctx) {
-  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.3" });
+  const server = new McpServer({ name: "kiro-acp-plugin", version: "0.4.4" });
   server.registerTool(
     "kiro_prompt",
     {
-      description: "Delegate a task to the local kiro-cli coding agent and wait for the result. Returns kiro's reply, a session_id for follow-ups, and a summary of what it did. kiro knows nothing about your conversation: include file paths, constraints, and acceptance criteria.",
+      description: "Delegate a coding task to the local kiro-cli agent; blocks until done. Returns kiro's reply, a session_id for follow-ups, and a tool-call summary. kiro can't see this conversation \u2014 include file paths, constraints, and acceptance criteria.",
       inputSchema: {
-        prompt: external_exports2.string().describe("The task. Include relevant file paths, constraints, and acceptance criteria."),
-        session_id: external_exports2.string().optional().describe("Continue an existing kiro session (returned by a previous call)."),
-        cwd: external_exports2.string().optional().describe("Absolute working directory for a NEW session. Default: this project."),
-        model: external_exports2.string().optional().describe("Launch-time only: kiro model id. Ignored if kiro is already running."),
-        agent: external_exports2.string().optional().describe("Launch-time only: kiro agent profile name."),
+        prompt: external_exports2.string().describe("The task, with file paths, constraints, and acceptance criteria."),
+        session_id: external_exports2.string().optional().describe("Continue a prior kiro session (from a previous call)."),
+        cwd: external_exports2.string().optional().describe("Absolute working dir for a NEW session. Default: this project."),
+        model: external_exports2.string().optional().describe("Launch-time only; ignored once kiro is running."),
+        agent: external_exports2.string().optional().describe("Launch-time only: kiro agent profile."),
         effort: external_exports2.string().optional().describe("Launch-time only: low|medium|high|xhigh|max.")
       }
     },
@@ -30610,7 +30610,7 @@ function buildServer(ctx) {
   server.registerTool(
     "kiro_list_sessions",
     {
-      description: "List kiro sessions managed by this server: id, status (idle|running|dead), cwd, last activity.",
+      description: "List kiro sessions: id, status (idle|running|dead), cwd, last activity.",
       inputSchema: {}
     },
     async () => ({ content: [{ type: "text", text: kiroListSessions(ctx) }] })

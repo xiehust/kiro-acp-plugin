@@ -1,6 +1,6 @@
 ---
 name: kiro-sub-agent
-description: Delegate a self-contained coding task to the local kiro-cli agent and return a verified, compact summary. Use PROACTIVELY for long-running or parallelizable implementation tasks (a module against a defined interface, fixing a failing test, mechanical refactors, boilerplate) when the main conversation's context should stay small — kiro's verbose output and the verification work are absorbed here instead of the main thread. The dispatching prompt MUST include the task, relevant file paths, project conventions, explicit acceptance criteria, and optionally an existing kiro session_id for follow-ups. Do NOT use for tasks needing the main conversation's history, for architectural decisions, or for files the caller is concurrently editing.
+description: Delegate a self-contained coding task to the local kiro-cli agent and return a verified, compact summary. Use PROACTIVELY for long-running or parallelizable implementation work — a module to a defined interface, fixing a failing test, mechanical refactors, boilerplate — that should stay out of the main conversation's context. Do NOT use for tasks needing conversation history, architectural decisions, or files the caller is concurrently editing.
 model: sonnet
 ---
 
