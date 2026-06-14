@@ -23,7 +23,8 @@ found:
   the most expensive line item ($25/M), and delegation pushes nearly all of it
   to kiro. The host's token bill is converted into kiro credits ($0.04 each),
   which were only ~9% of the delegated total — the bulk of cost stays in host
-  tokens, dominated by plugin load + verification.
+  tokens, dominated by the verification turns (not the plugin: its always-in-context
+  footprint is only ~440 tokens — see below).
 - **~8% cheaper overall** across the three tasks ($1.48 vs $1.60), but the
   advantage is **size-dependent**: small one-function tasks roughly break even
   (the direction flips run-to-run — within trajectory noise once fixed overhead
@@ -39,6 +40,16 @@ kiro's credit pool, cuts the priciest output tokens, and keeps the host context
 small (the host only sees a kickoff + a verification pass, not the full
 implementation transcript). Numbers are n=1 per cell on minute-scale tasks; see
 the report's limitations.
+
+> **v0.4.4 — context-overhead pass.** A follow-up measured the plugin's true
+> always-in-context cost deterministically: ~534 tokens (3 MCP tool defs + skill
+> & agent descriptions), trimmed to **~437 tokens (−18%)** by moving operational
+> detail out of the registry descriptions. This also corrected an earlier
+> misread in the report: the cache-write difference between arms was **not**
+> "plugin loading" (the footprint is tiny, and both arms load the plugin since
+> it's globally installed) — it's the delegation round-trips, longer prompt, and
+> cache-TTL rewrite timing. The optimization is real but below the experiment's
+> run-to-run noise floor, so it doesn't move the cost numbers above (report §10).
 
 ## Architecture
 
