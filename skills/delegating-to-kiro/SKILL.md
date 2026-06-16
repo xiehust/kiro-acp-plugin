@@ -1,6 +1,6 @@
 ---
 name: delegating-to-kiro
-description: Use when a coding task could be delegated to the local kiro-cli agent via the kiro_prompt MCP tool — covers which tasks to delegate, how to write the delegation prompt, session reuse, and mandatory result verification.
+description: Use when a coding task could be delegated to the local kiro-cli agent via the kiro_prompt MCP tool — covers which tasks to delegate, how to write the delegation prompt, session reuse, and verifying results (scaled to risk).
 ---
 
 # Delegating tasks to kiro
@@ -59,9 +59,22 @@ kiro starts with zero knowledge of your conversation. Always include:
 - A `dead` session means kiro crashed/restarted: start a new session and
   restate the context.
 
-## Verify — always
+## Verify — scale it to the risk
 
-After every `kiro_prompt` that claims to have changed something:
-1. `git diff` (or read the files) — confirm the change matches the task
-2. Run the project's tests/build
-3. Report what YOU verified, not what kiro claimed
+After every `kiro_prompt` you call **directly**, verify proportionally in your
+own context — and always report what YOU verified, not what kiro claimed.
+(When you instead dispatch the `kiro-sub-agent`, it always full-verifies in its
+isolated context, so verification costs the main conversation nothing — let it.)
+
+- **Full verify (default).** `git diff` (or read the files) to confirm the
+  change matches the task, then run the project's tests/build yourself.
+- **Light check** — only when ALL of these hold: kiro ran the task's own tests
+  and reports them green, the change is low-stakes, AND a gate runs downstream
+  (CI, or you/the user will run tests later). Then just confirm the expected
+  files exist and skim the diff, trusting kiro's test run. This skips the
+  re-run round-trips, which are the bulk of the host-side cost (~halved in an
+  A/B test) — but kiro's self-test is its own claim, so only lean on it when
+  something else will still catch a bad result.
+- **Never skip** when correctness matters and nothing downstream will check it:
+  with no host verification and no external gate, an incorrect result ships
+  unnoticed.

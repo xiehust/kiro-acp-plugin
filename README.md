@@ -13,33 +13,40 @@ hosts — [OpenAI Codex CLI setup below](#use-with-openai-codex-cli).
 
 Delegating implementation to kiro moves the expensive part of coding — the
 many-turn read/edit/test/fix loop — off the host model and onto kiro's
-credit-billed agent, while the host keeps only the cheap work (kicking off the
-task and verifying the result). A controlled A/B experiment (same Opus 4.8
-model on both sides, three coding tasks small→large, independent `pytest`
-verification — [full report](docs/experiments/2026-06-12-token-credit-cost-experiment.md))
-found:
+credit-billed agent. The host keeps only the cheap work; *how* cheap depends on
+whether it still verifies kiro's output afterward. Two controlled A/B experiments
+(same Opus 4.8 on both sides, three coding tasks small→large, an independent
+framework `pytest` as the quality gate) bracket the range:
 
-- **~30% fewer host tokens, and ~65% fewer host *output* tokens** — output is
-  the most expensive line item ($25/M), and delegation pushes nearly all of it
-  to kiro. The host's token bill is converted into kiro credits ($0.04 each),
-  which were only ~9% of the delegated total — the bulk of cost stays in host
-  tokens, dominated by the verification turns (not the plugin: its always-in-context
-  footprint is only ~440 tokens — see below).
-- **~8% cheaper overall** across the three tasks ($1.48 vs $1.60), but the
-  advantage is **size-dependent**: small one-function tasks roughly break even
-  (the direction flips run-to-run — within trajectory noise once fixed overhead
-  stops amortizing), while medium/larger tasks were the consistent winners.
-  Delegate the substantial tasks; for trivial ones it's a wash, so do them
-  directly.
-- **No quality regression** — all runs passed independent `pytest`; the
-  delegated arm produced at least as many test cases as the direct arm.
+- **Delegate-then-verify** — the host reads the created files and re-runs
+  `pytest`, re-delegating on failure (the pattern the bundled skill teaches):
+  **~30% fewer host tokens, ~65% fewer host *output* tokens, ~8% cheaper overall**
+  ($1.48 vs $1.60).
+  [report](docs/experiments/2026-06-12-token-credit-cost-experiment.md)
+- **Delegate-and-trust** — the host fires one delegation, trusts kiro's own test
+  run, and never reads files or runs `pytest` itself:
+  **~71% fewer host tokens, ~87% fewer host output tokens, ~48% cheaper overall**
+  ($1.05 vs $2.03). The verification round-trips *were* most of the host cost, so
+  dropping them roughly halves it — but this also removes the host's safety net:
+  correctness then rests entirely on kiro's self-test.
+  [report](docs/experiments/2026-06-16-token-credit-cost-noverify-experiment.md)
+
+Output (the priciest line item at $25/M) is what delegation pushes onto kiro; the
+host bill that remains converts into kiro credits ($0.04 each), only **~9–19%** of
+the delegated total. **No quality regression in either run** — every arm passed
+the independent `pytest`, and the delegated arms produced at least the required
+test coverage. The no-verify quality held *because* that independent gate
+confirmed it; real usage usually has no such external gate, so prefer
+delegate-then-verify unless you have CI or another check downstream.
+
 ![kiro](docs/assets/krio-experiment.png)
+
 So the plugin's value isn't "always cheaper" — it's that for non-trivial,
 well-specified implementation work it shifts spend from your Opus token pool to
-kiro's credit pool, cuts the priciest output tokens, and keeps the host context
-small (the host only sees a kickoff + a verification pass, not the full
-implementation transcript). Numbers are n=1 per cell on minute-scale tasks; see
-the report's limitations.
+kiro's credit pool and cuts the priciest output tokens. Verification is the knob:
+keep it for a host-side safety net (~8% cheaper), or drop it to roughly halve cost
+when an external gate has your back (~48% cheaper). Numbers are n=1 per cell on
+minute-scale tasks; see the reports' limitations.
 
 > **v0.4.4 — context-overhead pass.** A follow-up measured the plugin's true
 > always-in-context cost deterministically: ~534 tokens (3 MCP tool defs + skill
